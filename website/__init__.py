@@ -6,23 +6,170 @@ import os
 
 db = SQLAlchemy()
 
+# Canonical origin mapping — applied at import time and on every startup migration.
+# Keys are matched case-insensitively. Empty string '' means "discard this origin".
+_ORIGIN_LOOKUP = {
+    # Old / Middle / Ancient prefixes → base language (also handled generically below)
+    'old english':        'English',
+    'middle english':     'English',
+    'anglo-saxon':        'English',
+    'anglo saxon':        'English',
+    'british':            'English',
+    'old french':         'French',
+    'middle french':      'French',
+    'old provençal':      'French',
+    'old german':         'German',
+    'old high german':    'German',
+    'middle high german': 'German',
+    'germanic':           'German',
+    'old norse':          'Scandinavian',
+    'norse':              'Scandinavian',
+    'swedish':            'Scandinavian',
+    'norwegian':          'Scandinavian',
+    'danish':             'Scandinavian',
+    'icelandic':          'Scandinavian',
+    'old icelandic':      'Scandinavian',
+    'old scandinavian':   'Scandinavian',
+    'irish gaelic':       'Irish',
+    'old irish':          'Irish',
+    'scottish gaelic':    'Scottish',
+    'gaelic':             'Celtic',
+    'cornish':            'Celtic',
+    'manx':               'Celtic',
+    'breton':             'Celtic',
+    'ancient greek':      'Greek',
+    'greek mythology':    'Greek',
+    # South Asian → Indian
+    'hindi':              'Indian',
+    'hindu':              'Indian',
+    'sanskrit':           'Indian',
+    'bengali':            'Indian',
+    'tamil':              'Indian',
+    'telugu':             'Indian',
+    'kannada':            'Indian',
+    'punjabi':            'Indian',
+    'gujarati':           'Indian',
+    'marathi':            'Indian',
+    'urdu':               'Indian',
+    'sikh':               'Indian',
+    # Scandinavian already above (Swedish, Norwegian, Danish, Icelandic → Scandinavian)
+    # Sub-Saharan African → African
+    'nigerian':           'African',
+    'yoruba':             'African',
+    'swahili':            'African',
+    'zulu':               'African',
+    'somali':             'African',
+    'ethiopian':          'African',
+    'ghanaian':           'African',
+    'west african':       'African',
+    'east african':       'African',
+    'kenyan':             'African',
+    # African-American normalisation
+    'african-american':   'African American',
+    # Slavic languages → Slavic
+    'russian':            'Slavic',
+    'polish':             'Slavic',
+    'czech':              'Slavic',
+    'serbian':            'Slavic',
+    'croatian':           'Slavic',
+    'bulgarian':          'Slavic',
+    'ukrainian':          'Slavic',
+    'slovak':             'Slavic',
+    'lithuanian':         'Slavic',
+    'latvian':            'Slavic',
+    'romanian':           'Slavic',
+    'east slavic':        'Slavic',
+    # Middle Eastern → Persian (for name purposes)
+    'iranian':            'Persian',
+    'afghan':             'Persian',
+    'kurdish':            'Persian',
+    # Other consolidations
+    'flemish':            'Dutch',
+    'brazilian':          'Portuguese',
+    'galician':           'Spanish',
+    'mexican':            'Spanish',
+    'catalan':            'Spanish',
+    'aztec':              'Native American',
+    'mayan':              'Native American',
+    'new zealand maori':  'Maori',
+    'aboriginal':         'Australian',
+    # Discard entries that are not real cultural origins
+    'east coast':         '',
+    'east town':          '',
+    'west leigh':         '',
+    'new york city':      '',
+    'new zealand':        '',
+    'south africa':       '',
+    'south wales':        '',
+    'middle east':        '',
+    'anglo':              '',
+}
+
+# Prefixes to strip (e.g. "Old Welsh" → "Welsh", "Middle Persian" → "Persian")
+_STRIP_PREFIXES = ('Old ', 'Middle ', 'Ancient ', 'Early ', 'Modern ')
+# Suffixes to strip (e.g. "Greek Mythology" → "Greek", "Scottish Gaelic" → "Scottish")
+_STRIP_SUFFIXES = (' Mythology', ' Gaelic', ' Language')
+
+
+def _normalize_origin(raw):
+    """Map messy/compound/redundant origins to a clean canonical form."""
+    if not raw:
+        return raw
+    s = raw.strip()
+    low = s.lower()
+
+    # Descriptive combination phrases → Combination
+    if low.startswith(('combination', 'a combination', 'blend of', 'a blend')):
+        return 'Combination'
+
+    # Other descriptive/noise phrases → discard
+    for noise in ('variant of ', 'variation of ', 'diminutive of ', 'derived from ',
+                  'a form of ', 'a name ', 'a modern ', 'a type ', 'form of '):
+        if low.startswith(noise):
+            return ''
+
+    # Exact lookup (case-insensitive)
+    mapped = _ORIGIN_LOOKUP.get(low)
+    if mapped is not None:
+        return mapped  # may be '' (discard)
+
+    # Generic prefix stripping: "Old Welsh" → "Welsh"
+    for prefix in _STRIP_PREFIXES:
+        if s.startswith(prefix):
+            remainder = s[len(prefix):].strip()
+            # Re-run lookup on the stripped value
+            return _ORIGIN_LOOKUP.get(remainder.lower(), remainder)
+
+    # Suffix stripping: "X Mythology" → "X"
+    for suffix in _STRIP_SUFFIXES:
+        if s.endswith(suffix):
+            remainder = s[:-len(suffix)].strip()
+            return _ORIGIN_LOOKUP.get(remainder.lower(), remainder)
+
+    # Compound with dash separator: "American - English" → "American"
+    if ' - ' in s:
+        head = s.split(' - ')[0].strip()
+        return _ORIGIN_LOOKUP.get(head.lower(), head)
+
+    # Too long → almost certainly garbled data, discard
+    if len(s) > 35:
+        return ''
+
+    return s
+
 
 def create_app():
     app = Flask(__name__)
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
 
     database_url = os.environ.get('DATABASE_URL', f'sqlite:///{path.join(app.instance_path, "database.db")}')
-    # Heroku/Coolify may give postgres:// which SQLAlchemy requires as postgresql://
     if database_url.startswith('postgres://'):
         database_url = database_url.replace('postgres://', 'postgresql://', 1)
     app.config['SQLALCHEMY_DATABASE_URI'] = database_url
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-    # Image generation — lazily cached to disk
     app.config['IMAGE_DIR'] = os.environ.get(
         'IMAGE_DIR', os.path.join(app.instance_path, 'images'))
-    # Optional: point at a local AUTOMATIC1111 instance for fully offline generation
-    # e.g. IMAGE_API_URL=http://localhost:7860
     app.config['IMAGE_API_URL'] = os.environ.get('IMAGE_API_URL', '')
 
     db.init_app(app)
@@ -66,20 +213,7 @@ def _migrate_db():
                 conn.execute(text(f'ALTER TABLE "user" ADD COLUMN {col_name} {col_def}'))
                 conn.commit()
             except Exception:
-                pass  # Column already exists
-
-
-def _normalize_origin(raw):
-    """Normalize messy origins: 'American - English' → 'American', 'Combination of X and Y' → 'Combination'."""
-    if not raw:
-        return raw
-    s = raw.strip()
-    low = s.lower()
-    if low.startswith(('combination', 'a combination', 'blend of', 'a blend')):
-        return 'Combination'
-    if ' - ' in s:
-        return s.split(' - ')[0].strip()
-    return s
+                pass
 
 
 def _auto_load_names(app):
@@ -109,10 +243,11 @@ def _auto_load_names(app):
         raw_gender = (row['gender'] or '').strip().lower()
         gender = gender_map.get(raw_gender, 'N')
         raw_origin = (row['origin'] or '').strip()
+        normalized = _normalize_origin(raw_origin) or None
         db.session.add(BabyName(
             name=name_val,
             gender=gender,
-            origin=_normalize_origin(raw_origin) or None,
+            origin=normalized,
             meaning=(row['meaning'] or '').strip() or None,
             style=(row['style'] or '').strip() or None,
         ))
@@ -124,28 +259,20 @@ def _auto_load_names(app):
 
 
 def _migrate_origins():
-    """Normalize compound / descriptive origins already in the DB."""
+    """Apply the full normalization table to all existing records in the DB."""
     from .models import BabyName, User
-    from sqlalchemy import or_
     updated = 0
 
-    for n in BabyName.query.filter(
-        or_(BabyName.origin.like('% - %'),
-            BabyName.origin.ilike('Combination%'),
-            BabyName.origin.ilike('Blend of%'))
-    ).all():
-        condensed = _normalize_origin(n.origin)
-        if condensed != n.origin:
-            n.origin = condensed
+    for n in BabyName.query.filter(BabyName.origin.isnot(None)).all():
+        normalized = _normalize_origin(n.origin) or None
+        if normalized != n.origin:
+            n.origin = normalized
             updated += 1
 
-    for u in User.query.filter(
-        or_(User.pref_origin.like('% - %'),
-            User.pref_origin.ilike('Combination%'))
-    ).all():
-        condensed = _normalize_origin(u.pref_origin)
-        if condensed != u.pref_origin:
-            u.pref_origin = condensed
+    for u in User.query.filter(User.pref_origin != '').all():
+        normalized = _normalize_origin(u.pref_origin) or ''
+        if normalized != u.pref_origin:
+            u.pref_origin = normalized
             updated += 1
 
     if updated:
