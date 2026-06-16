@@ -1,29 +1,45 @@
-let currentName = null;
-let isSwiping = false;
-
 const GENDER_LABEL = { M: 'Boy', F: 'Girl', N: 'Neutral' };
 const GENDER_EMOJI = { M: '♂', F: '♀', N: '⚥' };
+const ANIM_MS = 250;
+
+let currentName = null;
+let prefetched  = null; // next name fetched in background; null = not ready
+let isSwiping   = false;
+
+async function _fetchName() {
+  const res = await fetch('/api/next-name');
+  return res.json();
+}
+
+function _prefetchNext() {
+  // Fire-and-forget — result stored whenever it arrives
+  _fetchName().then(data => { prefetched = data; }).catch(() => {});
+}
 
 async function loadNextName() {
-  if (isSwiping) return;
+  let data;
 
-  const res = await fetch('/api/next-name');
-  const data = await res.json();
-
-  if (data.done) {
-    showDone();
-    return;
+  if (prefetched !== null) {
+    data = prefetched;
+    prefetched = null;
+  } else {
+    data = await _fetchName();
   }
+
+  if (data.done) { showDone(); return; }
 
   currentName = data;
   renderCard(data);
+
+  // Start fetching the card after this one while the user is reading.
+  // The current card isn't swiped yet so the pool still contains it —
+  // we check for that collision in swipe() and discard if needed.
+  _prefetchNext();
 }
 
 function renderCard(data) {
   const card = document.getElementById('name-card');
   if (!card) return;
-
-  card.className = 'name-card';
 
   document.getElementById('card-name').textContent = data.name;
 
@@ -41,32 +57,45 @@ function renderCard(data) {
 
   document.getElementById('card-meaning').textContent = data.meaning || 'No meaning available.';
 
+  // Remove old state, trigger entrance
+  card.classList.remove('card-exit-right', 'card-exit-left', 'card-enter');
+  // Force reflow so removing + re-adding card-enter restarts the animation
+  void card.offsetWidth;
   card.classList.add('card-enter');
-  setTimeout(() => card.classList.remove('card-enter'), 400);
 }
 
 async function swipe(liked) {
   if (!currentName || isSwiping) return;
   isSwiping = true;
 
+  const nameId = currentName.id;
   const card = document.getElementById('name-card');
+  card.classList.remove('card-enter');
   card.classList.add(liked ? 'card-exit-right' : 'card-exit-left');
 
-  const res = await fetch('/api/swipe', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name_id: currentName.id, liked }),
-  });
-  const data = await res.json();
+  // Run exit animation and swipe POST in parallel — saves a full round-trip
+  const [swipeRes] = await Promise.all([
+    fetch('/api/swipe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name_id: nameId, liked }),
+    }),
+    new Promise(r => setTimeout(r, ANIM_MS)),
+  ]);
 
-  setTimeout(() => {
-    isSwiping = false;
-    if (data.matched) {
-      showMatchModal(data.matched_name);
-    } else {
-      loadNextName();
-    }
-  }, 350);
+  const swipeData = await swipeRes.json();
+  isSwiping = false;
+
+  // Discard prefetch if it somehow returned the card we just swiped
+  if (prefetched && !prefetched.done && prefetched.id === nameId) {
+    prefetched = null;
+  }
+
+  if (swipeData.matched) {
+    showMatchModal(swipeData.matched_name);
+  } else {
+    loadNextName();
+  }
 }
 
 function showMatchModal(name) {
@@ -87,7 +116,10 @@ function showDone() {
     <div class="done-message">
       <div class="done-icon">&#127881;</div>
       <h3>You've seen all the names!</h3>
-      <p>Update your <a href="/account">preferences</a> to see more, or check your <a href="/matches">matches</a>.</p>
+      <p style="color:var(--muted);font-weight:600;">
+        Update your <a href="/account">preferences</a> to see more,
+        or check your <a href="/matches">matches</a>.
+      </p>
     </div>`;
 }
 
@@ -102,7 +134,6 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('match-modal-close')?.addEventListener('click', closeMatchModal);
   document.getElementById('match-modal-keep-swiping')?.addEventListener('click', closeMatchModal);
 
-  // Keyboard shortcuts: arrow keys or vim-style h/l
   document.addEventListener('keydown', (e) => {
     if (!document.getElementById('card-container')) return;
     if (e.key === 'ArrowRight' || e.key === 'l') swipe(true);
