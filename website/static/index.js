@@ -1,13 +1,12 @@
 const GENDER_LABEL = { M: 'Boy', F: 'Girl', N: 'Neutral' };
 const GENDER_EMOJI = { M: '♂', F: '♀', N: '⚥' };
 const ANIM_MS = 250;
-const SWIPE_THRESHOLD = 80; // px before a drag counts as a swipe
+const SWIPE_THRESHOLD = 80; // px
 
 let currentName = null;
 let prefetched  = null;
 let isSwiping   = false;
 
-// Drag state
 let dragStartX = 0;
 let dragStartY = 0;
 let isDragging = false;
@@ -59,24 +58,20 @@ function renderCard(data) {
   if (imgEl && placeholder) {
     imgEl.style.opacity = '0';
     placeholder.style.opacity = '1';
-    imgEl.onload = () => {
-      placeholder.style.opacity = '0';
-      imgEl.style.opacity = '1';
-    };
+    imgEl.onload = () => { placeholder.style.opacity = '0'; imgEl.style.opacity = '1'; };
     imgEl.onerror = () => {};
     imgEl.src = `/api/name-image/${data.id}`;
   }
 
-  // Reset hint stamps
   const hintLike = document.getElementById('hint-like');
   const hintNope = document.getElementById('hint-nope');
   if (hintLike) hintLike.style.opacity = '0';
   if (hintNope) hintNope.style.opacity = '0';
 
-  // Clear ALL inline drag styles, then run enter animation from clean state
+  // Clear all inline drag styles then play enter animation from clean state
   card.style.cssText = '';
   card.classList.remove('card-exit-right', 'card-exit-left', 'card-enter', 'is-dragging');
-  void card.offsetWidth; // force reflow so animation restarts
+  void card.offsetWidth;
   card.classList.add('card-enter');
 }
 
@@ -88,12 +83,12 @@ async function swipe(liked, dragAnimated = false) {
   const card = document.getElementById('name-card');
 
   if (!dragAnimated) {
-    // Button / keyboard — use CSS keyframe animation
+    // Button / keyboard path — use CSS keyframe animation
     card.style.cssText = '';
     card.classList.remove('card-enter');
     card.classList.add(liked ? 'card-exit-right' : 'card-exit-left');
   }
-  // dragAnimated: card is already flying via inline transition set in onDragEnd
+  // dragAnimated path: card is already flying via inline transition set in onDragEnd
 
   let swipeRes;
   try {
@@ -114,30 +109,28 @@ async function swipe(liked, dragAnimated = false) {
   const swipeData = await swipeRes.json();
   isSwiping = false;
 
-  if (prefetched && !prefetched.done && prefetched.id === nameId) {
-    prefetched = null;
-  }
+  if (prefetched && !prefetched.done && prefetched.id === nameId) prefetched = null;
   _prefetchNext();
 
-  if (swipeData.matched) {
-    showMatchModal(swipeData.matched_name);
-  } else {
-    loadNextName();
-  }
+  if (swipeData.matched) showMatchModal(swipeData.matched_name);
+  else loadNextName();
 }
 
-// ── Drag / touch swipe ─────────────────────────────────────────────────────
+// ── Drag swipe via Pointer Events ──────────────────────────────────────────
+// Pointer Events unify touch + mouse into one API.
+// setPointerCapture keeps tracking the pointer even when it leaves the card.
 
 function onDragStart(e) {
-  if (isSwiping || !currentName) return;
-  if (e.button !== undefined && e.button !== 0) return; // left-click only
-
-  dragStartX = e.touches ? e.touches[0].clientX : e.clientX;
-  dragStartY = e.touches ? e.touches[0].clientY : e.clientY;
-  isDragging = true;
+  if (isSwiping || !currentName || e.button !== 0) return;
 
   const card = document.getElementById('name-card');
-  // Stop any in-progress CSS animation and lock card at opacity:1
+  card.setPointerCapture(e.pointerId); // all future pointer events route here
+
+  dragStartX = e.clientX;
+  dragStartY = e.clientY;
+  isDragging = true;
+
+  // Stop any in-progress CSS animation and lock card at full opacity
   card.classList.remove('card-enter', 'card-exit-right', 'card-exit-left');
   card.style.animation  = 'none';
   card.style.transition = 'none';
@@ -149,12 +142,8 @@ function onDragStart(e) {
 function onDragMove(e) {
   if (!isDragging) return;
 
-  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-  const dx = clientX - dragStartX;
-  const dy = clientY - dragStartY;
-
-  if (Math.abs(dx) > Math.abs(dy) && e.cancelable) e.preventDefault();
+  const dx = e.clientX - dragStartX;
+  const dy = e.clientY - dragStartY;
 
   const card     = document.getElementById('name-card');
   const hintLike = document.getElementById('hint-like');
@@ -178,9 +167,7 @@ function onDragEnd(e) {
   if (!isDragging) return;
   isDragging = false;
 
-  const endX = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
-  const dx   = endX - dragStartX;
-
+  const dx = e.clientX - dragStartX;
   const card     = document.getElementById('name-card');
   const hintLike = document.getElementById('hint-like');
   const hintNope = document.getElementById('hint-nope');
@@ -189,7 +176,6 @@ function onDragEnd(e) {
 
   if (!isSwiping && currentName && Math.abs(dx) >= SWIPE_THRESHOLD) {
     const liked = dx > 0;
-    // Continue the throw off-screen, then commit
     card.style.transition = `transform ${ANIM_MS}ms ease-out, opacity ${ANIM_MS}ms ease-out`;
     card.style.transform  = `translateX(${liked ? '130vw' : '-130vw'}) rotate(${liked ? 35 : -35}deg)`;
     card.style.opacity    = '0';
@@ -197,15 +183,13 @@ function onDragEnd(e) {
     if (hintNope) hintNope.style.opacity = '0';
     swipe(liked, true);
   } else {
-    // Snap back to centre with a spring
+    // Snap back with a spring bounce
     card.style.transition = 'transform 0.3s cubic-bezier(0.25,1.5,0.5,1), opacity 0.2s ease';
     card.style.transform  = 'translateX(0) rotate(0deg)';
     card.style.opacity    = '1';
     if (hintLike) hintLike.style.opacity = '0';
     if (hintNope) hintNope.style.opacity = '0';
-    setTimeout(() => {
-      if (!isDragging) card.style.transition = 'none';
-    }, 320);
+    setTimeout(() => { if (!isDragging) card.style.transition = 'none'; }, 320);
   }
 }
 
@@ -267,16 +251,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('match-modal-close')?.addEventListener('click', closeMatchModal);
   document.getElementById('match-modal-keep-swiping')?.addEventListener('click', closeMatchModal);
 
-  // Drag-to-swipe
+  // Pointer events: unified touch + mouse; setPointerCapture routes moves to the card
   const card = document.getElementById('name-card');
   if (card) {
-    card.addEventListener('mousedown',  onDragStart);
-    card.addEventListener('touchstart', onDragStart, { passive: true });
+    card.addEventListener('pointerdown',   onDragStart);
+    card.addEventListener('pointermove',   onDragMove);
+    card.addEventListener('pointerup',     onDragEnd);
+    card.addEventListener('pointercancel', onDragEnd);
   }
-  document.addEventListener('mousemove', onDragMove);
-  document.addEventListener('touchmove', onDragMove, { passive: false });
-  document.addEventListener('mouseup',   onDragEnd);
-  document.addEventListener('touchend',  onDragEnd);
 
   document.addEventListener('keydown', (e) => {
     if (!document.getElementById('card-container')) return;
