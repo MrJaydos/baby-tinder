@@ -56,6 +56,19 @@
         Showing all names &mdash; <a href="/account">set preferences</a>
       </p>
       {% endif %}
+
+      <!-- Live stats dashboard -->
+      <div class="d-flex justify-content-center mt-3" style="gap:0.75rem;">
+        <a href="/" class="stat-chip" title="Your total swipes">
+          <span class="stat-chip-num" id="stat-swipes">{{ swipe_count }}</span>
+          <span class="stat-chip-label">swipes</span>
+        </a>
+        <a href="/matches" class="stat-chip stat-chip-match" title="Names you both liked">
+          <span class="stat-chip-num" id="stat-matches">{{ match_count }}</span>
+          <span class="stat-chip-label">{{ 'match' if match_count == 1 else 'matches' }}</span>
+        </a>
+      </div>
+
     </div>
 
   </div>

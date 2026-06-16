@@ -44,16 +44,43 @@
       /* ── Navbar ── */
       .navbar {
         background: var(--plum) !important;
-        padding: 0.75rem 1.5rem;
+        padding: 0.55rem 1rem;
         box-shadow: 0 2px 16px rgba(45,19,71,0.3);
+        position: relative; /* anchor for absolute brand */
+        flex-wrap: wrap;    /* lets the collapse row stack below */
       }
       .navbar-brand {
-        font-size: 1.45rem;
+        font-size: 1.35rem;
         font-weight: 900;
         color: #fff !important;
         letter-spacing: -0.3px;
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        white-space: nowrap;
+        pointer-events: auto;
       }
       .navbar-brand span { color: var(--pink-mid); }
+      .navbar-toggler {
+        border: none;
+        background: transparent;
+        color: rgba(255,255,255,0.85);
+        font-size: 1.2rem;
+        padding: 0.35rem 0.5rem;
+        line-height: 1;
+      }
+      .navbar-toggler:focus { outline: none; box-shadow: none; }
+      .account-icon-btn {
+        border: none;
+        background: transparent;
+        color: rgba(255,255,255,0.85);
+        font-size: 1.35rem;
+        padding: 0.2rem 0.4rem;
+        line-height: 1;
+        transition: color 0.15s;
+      }
+      .account-icon-btn:hover,
+      .account-icon-btn:focus { color: #fff; outline: none; box-shadow: none; }
       .nav-item .nav-link {
         color: rgba(255,255,255,0.80) !important;
         font-weight: 600;
@@ -66,9 +93,67 @@
         color: #fff !important;
         background: rgba(255,255,255,0.12);
       }
-      .navbar-toggler { border-color: rgba(255,255,255,0.3); }
-      .navbar-toggler-icon {
-        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='30' height='30' viewBox='0 0 30 30'%3e%3cpath stroke='rgba(255,255,255,0.8)' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+      .navbar-collapse-inner {
+        border-top: 1px solid rgba(255,255,255,0.1);
+        margin-top: 0.4rem;
+        padding-top: 0.4rem;
+        padding-bottom: 0.3rem;
+      }
+      /* Account dropdown styling */
+      .account-dropdown-menu {
+        border-radius: 16px !important;
+        border: none !important;
+        box-shadow: 0 8px 32px rgba(45,19,71,0.2) !important;
+        min-width: 190px;
+        padding: 0.4rem 0;
+      }
+      .account-dropdown-menu .dropdown-item {
+        font-weight: 600;
+        padding: 0.55rem 1rem;
+        color: var(--text);
+      }
+      .account-dropdown-menu .dropdown-item:hover { background: var(--bg); }
+      .account-dropdown-header {
+        font-weight: 800;
+        color: var(--plum);
+        font-size: 0.92rem;
+        padding: 0.5rem 1rem 0.5rem;
+        border-bottom: 2px solid #f5eef9;
+        margin-bottom: 0.25rem;
+      }
+
+      /* ── Swipe-page stat chips ── */
+      .stat-chip {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        background: white;
+        border-radius: 16px;
+        padding: 0.55rem 1.3rem;
+        box-shadow: 0 4px 16px rgba(233,30,140,0.10);
+        text-decoration: none;
+        transition: transform 0.15s, box-shadow 0.15s;
+        min-width: 78px;
+      }
+      .stat-chip:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(233,30,140,0.18);
+        text-decoration: none;
+      }
+      .stat-chip-num {
+        font-size: 1.55rem;
+        font-weight: 900;
+        color: var(--plum);
+        line-height: 1;
+      }
+      .stat-chip-match .stat-chip-num { color: var(--pink); }
+      .stat-chip-label {
+        font-size: 0.68rem;
+        font-weight: 700;
+        color: var(--muted);
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        margin-top: 0.2rem;
       }
 
       /* ── Flash alerts ── */
@@ -429,19 +514,48 @@
     </style>
   </head>
   <body>
-    <nav class="navbar navbar-expand-lg">
-      <a class="navbar-brand" href="/">&#128149; Baby <span>Tinder</span></a>
-      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbar">
-        <span class="navbar-toggler-icon"></span>
+    <nav class="navbar">
+      <!-- Left: hamburger -->
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbar" aria-label="Menu">
+        <i class="fa fa-bars"></i>
       </button>
-      <div class="collapse navbar-collapse" id="navbar">
-        <div class="navbar-nav ml-auto">
+
+      <!-- Centre: brand (absolutely centred) -->
+      <a class="navbar-brand" href="/">&#128149; Baby <span>Tinder</span></a>
+
+      <!-- Right: account icon or login link -->
+      {% if user.is_authenticated %}
+      <div class="dropdown ml-auto">
+        <button class="account-icon-btn btn" data-toggle="dropdown" aria-label="Account">
+          <i class="fa fa-user-circle"></i>
+        </button>
+        <div class="dropdown-menu dropdown-menu-right account-dropdown-menu">
+          <div class="account-dropdown-header">Hi, {{ user.first_name }} &#128075;</div>
+          <a class="dropdown-item" href="/account">
+            <i class="fa fa-sliders fa-fw mr-2" style="color:var(--pink);"></i>Preferences
+          </a>
+          <a class="dropdown-item" href="/matches">
+            <i class="fa fa-heart fa-fw mr-2" style="color:var(--pink);"></i>Matches
+          </a>
+          <div class="dropdown-divider" style="margin:0.25rem 0;"></div>
+          <a class="dropdown-item" href="/logout" style="color:var(--muted);">
+            <i class="fa fa-sign-out fa-fw mr-2"></i>Logout
+          </a>
+        </div>
+      </div>
+      {% else %}
+      <a href="/login" class="ml-auto" style="color:rgba(255,255,255,0.85);font-weight:700;font-size:0.9rem;">Login</a>
+      {% endif %}
+
+      <!-- Collapsible full-width nav links -->
+      <div class="collapse navbar-collapse w-100" id="navbar">
+        <div class="navbar-nav navbar-collapse-inner">
           {% if user.is_authenticated %}
             <a class="nav-item nav-link" href="/">Home</a>
             <a class="nav-item nav-link" href="/tinder">Swipe</a>
             <a class="nav-item nav-link" href="/matches">Matches</a>
             <a class="nav-item nav-link" href="/account">Account</a>
-            <a class="nav-item nav-link" href="/logout">Logout</a>
+            <a class="nav-item nav-link" href="/logout" style="color:rgba(255,255,255,0.5);">Logout</a>
           {% else %}
             <a class="nav-item nav-link" href="/login">Login</a>
             <a class="nav-item nav-link" href="/sign-up">Sign Up</a>

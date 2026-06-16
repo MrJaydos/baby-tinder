@@ -68,7 +68,12 @@ def couple():
 @views.route('/tinder')
 @login_required
 def tinder():
-    return render_template('tinder.html', user=current_user)
+    swipe_count = Swipe.query.filter_by(user_id=current_user.id).count()
+    match_count = 0
+    if current_user.couple_id:
+        match_count = Match.query.filter_by(couple_id=current_user.couple_id).count()
+    return render_template('tinder.html', user=current_user,
+                           swipe_count=swipe_count, match_count=match_count)
 
 
 @views.route('/api/next-name')

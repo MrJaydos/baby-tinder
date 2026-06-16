@@ -112,6 +112,14 @@ async function swipe(liked, dragAnimated = false) {
   if (prefetched && !prefetched.done && prefetched.id === nameId) prefetched = null;
   _prefetchNext();
 
+  // Update live stat chips
+  const swipesEl = document.getElementById('stat-swipes');
+  if (swipesEl) swipesEl.textContent = String((parseInt(swipesEl.textContent) || 0) + 1);
+  if (swipeData.matched) {
+    const matchesEl = document.getElementById('stat-matches');
+    if (matchesEl) matchesEl.textContent = String((parseInt(matchesEl.textContent) || 0) + 1);
+  }
+
   if (swipeData.matched) showMatchModal(swipeData.matched_name);
   else loadNextName();
 }
