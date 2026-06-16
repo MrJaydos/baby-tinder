@@ -10,6 +10,8 @@
       data-style="{{ user.pref_style or '' }}">
       <!-- Name card — starts invisible (opacity:0 via CSS), JS reveals it -->
       <div id="name-card" class="name-card">
+        <div class="swipe-hint swipe-hint-like" id="hint-like">LOVE IT &#9829;</div>
+        <div class="swipe-hint swipe-hint-nope" id="hint-nope">NOPE &#10005;</div>
         <!-- Portrait: placeholder shown until AI image fades in -->
         <div class="card-img-wrap">
           <div id="card-img-placeholder" class="card-img-placeholder">&#128118;</div>

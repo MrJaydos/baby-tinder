@@ -158,7 +158,13 @@
         flex-direction: column;
         justify-content: center;
         opacity: 0; /* JS reveals via card-enter */
+        position: relative; /* anchor for swipe-hint overlays */
+        cursor: grab;
+        user-select: none;
+        -webkit-user-select: none;
+        touch-action: none; /* JS owns all touch events */
       }
+      .name-card.is-dragging { cursor: grabbing; }
       /* All motion is keyframe-only — no CSS transition, so nothing
          fights the animation when classes are swapped between cards. */
       .card-enter      { animation: cardEnter     0.25s ease forwards; }
@@ -175,6 +181,33 @@
       @keyframes cardExitLeft {
         from { opacity: 1; transform: translateX(0)     rotate(0); }
         to   { opacity: 0; transform: translateX(-110%) rotate(-15deg); }
+      }
+
+      /* ── Drag swipe hint stamps ── */
+      .swipe-hint {
+        position: absolute;
+        top: 1.4rem;
+        padding: 0.25rem 0.8rem;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-weight: 900;
+        letter-spacing: 0.06em;
+        opacity: 0;
+        pointer-events: none;
+        border: 3px solid;
+        transition: opacity 0.06s;
+      }
+      .swipe-hint-like {
+        left: 1.4rem;
+        color: var(--pink);
+        border-color: var(--pink);
+        transform: rotate(-12deg);
+      }
+      .swipe-hint-nope {
+        right: 1.4rem;
+        color: #78909c;
+        border-color: #78909c;
+        transform: rotate(12deg);
       }
 
       /* ── Card baby portrait ── */

@@ -70,10 +70,16 @@ def _migrate_db():
 
 
 def _normalize_origin(raw):
-    """'American - English' → 'American', 'Old English' stays 'Old English'."""
+    """Normalize messy origins: 'American - English' → 'American', 'Combination of X and Y' → 'Combination'."""
     if not raw:
         return raw
-    return raw.split(' - ')[0].strip()
+    s = raw.strip()
+    low = s.lower()
+    if low.startswith(('combination', 'a combination', 'blend of', 'a blend')):
+        return 'Combination'
+    if ' - ' in s:
+        return s.split(' - ')[0].strip()
+    return s
 
 
 def _auto_load_names(app):
@@ -118,17 +124,25 @@ def _auto_load_names(app):
 
 
 def _migrate_origins():
-    """Condense compound origins already in the DB — e.g. 'American - English' → 'American'."""
+    """Normalize compound / descriptive origins already in the DB."""
     from .models import BabyName, User
+    from sqlalchemy import or_
     updated = 0
 
-    for n in BabyName.query.filter(BabyName.origin.like('% - %')).all():
+    for n in BabyName.query.filter(
+        or_(BabyName.origin.like('% - %'),
+            BabyName.origin.ilike('Combination%'),
+            BabyName.origin.ilike('Blend of%'))
+    ).all():
         condensed = _normalize_origin(n.origin)
         if condensed != n.origin:
             n.origin = condensed
             updated += 1
 
-    for u in User.query.filter(User.pref_origin.like('% - %')).all():
+    for u in User.query.filter(
+        or_(User.pref_origin.like('% - %'),
+            User.pref_origin.ilike('Combination%'))
+    ).all():
         condensed = _normalize_origin(u.pref_origin)
         if condensed != u.pref_origin:
             u.pref_origin = condensed

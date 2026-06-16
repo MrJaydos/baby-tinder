@@ -1,34 +1,35 @@
 const GENDER_LABEL = { M: 'Boy', F: 'Girl', N: 'Neutral' };
 const GENDER_EMOJI = { M: '♂', F: '♀', N: '⚥' };
 const ANIM_MS = 250;
+const SWIPE_THRESHOLD = 80; // px before a drag counts as a swipe
 
 let currentName = null;
-let prefetched  = null; // next name fetched in background; null = not ready yet
+let prefetched  = null;
 let isSwiping   = false;
+
+// Drag state
+let dragStartX = 0;
+let dragStartY = 0;
+let isDragging = false;
 
 async function _fetchName() {
   const res = await fetch('/api/next-name', { cache: 'no-store' });
   return res.json();
 }
 
-// Fire-and-forget — safe to call only AFTER the current swipe is committed,
-// so the server's unswiped pool is up-to-date before we sample from it.
 function _prefetchNext() {
   _fetchName().then(data => { prefetched = data; }).catch(() => {});
 }
 
 async function loadNextName() {
   let data;
-
   if (prefetched !== null) {
     data = prefetched;
     prefetched = null;
   } else {
     data = await _fetchName();
   }
-
   if (data.done) { showDone(); return; }
-
   currentName = data;
   renderCard(data);
 }
@@ -53,7 +54,6 @@ function renderCard(data) {
 
   document.getElementById('card-meaning').textContent = data.meaning || 'No meaning available.';
 
-  // Reset portrait: show placeholder, hide old image while new one loads
   const imgEl = document.getElementById('card-img');
   const placeholder = document.getElementById('card-img-placeholder');
   if (imgEl && placeholder) {
@@ -63,25 +63,38 @@ function renderCard(data) {
       placeholder.style.opacity = '0';
       imgEl.style.opacity = '1';
     };
-    imgEl.onerror = () => { /* placeholder stays visible */ };
+    imgEl.onerror = () => {};
     imgEl.src = `/api/name-image/${data.id}`;
   }
 
-  card.classList.remove('card-exit-right', 'card-exit-left', 'card-enter');
-  void card.offsetWidth; // force reflow so animation restarts cleanly
+  // Reset hint stamps
+  const hintLike = document.getElementById('hint-like');
+  const hintNope = document.getElementById('hint-nope');
+  if (hintLike) hintLike.style.opacity = '0';
+  if (hintNope) hintNope.style.opacity = '0';
+
+  // Clear ALL inline drag styles, then run enter animation from clean state
+  card.style.cssText = '';
+  card.classList.remove('card-exit-right', 'card-exit-left', 'card-enter', 'is-dragging');
+  void card.offsetWidth; // force reflow so animation restarts
   card.classList.add('card-enter');
 }
 
-async function swipe(liked) {
+async function swipe(liked, dragAnimated = false) {
   if (!currentName || isSwiping) return;
   isSwiping = true;
 
   const nameId = currentName.id;
   const card = document.getElementById('name-card');
-  card.classList.remove('card-enter');
-  card.classList.add(liked ? 'card-exit-right' : 'card-exit-left');
 
-  // Run exit animation and swipe POST in parallel to save a round-trip
+  if (!dragAnimated) {
+    // Button / keyboard — use CSS keyframe animation
+    card.style.cssText = '';
+    card.classList.remove('card-enter');
+    card.classList.add(liked ? 'card-exit-right' : 'card-exit-left');
+  }
+  // dragAnimated: card is already flying via inline transition set in onDragEnd
+
   let swipeRes;
   try {
     [swipeRes] = await Promise.all([
@@ -101,9 +114,6 @@ async function swipe(liked) {
   const swipeData = await swipeRes.json();
   isSwiping = false;
 
-  // Swipe is now committed — safe to prefetch from the updated pool.
-  // Discard any stale prefetch that arrived before this swipe was recorded
-  // (rare, but possible if user swiped very fast).
   if (prefetched && !prefetched.done && prefetched.id === nameId) {
     prefetched = null;
   }
@@ -115,6 +125,91 @@ async function swipe(liked) {
     loadNextName();
   }
 }
+
+// ── Drag / touch swipe ─────────────────────────────────────────────────────
+
+function onDragStart(e) {
+  if (isSwiping || !currentName) return;
+  if (e.button !== undefined && e.button !== 0) return; // left-click only
+
+  dragStartX = e.touches ? e.touches[0].clientX : e.clientX;
+  dragStartY = e.touches ? e.touches[0].clientY : e.clientY;
+  isDragging = true;
+
+  const card = document.getElementById('name-card');
+  // Stop any in-progress CSS animation and lock card at opacity:1
+  card.classList.remove('card-enter', 'card-exit-right', 'card-exit-left');
+  card.style.animation  = 'none';
+  card.style.transition = 'none';
+  card.style.opacity    = '1';
+  card.style.transform  = 'translateX(0) rotate(0deg)';
+  card.classList.add('is-dragging');
+}
+
+function onDragMove(e) {
+  if (!isDragging) return;
+
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+  const dx = clientX - dragStartX;
+  const dy = clientY - dragStartY;
+
+  if (Math.abs(dx) > Math.abs(dy) && e.cancelable) e.preventDefault();
+
+  const card     = document.getElementById('name-card');
+  const hintLike = document.getElementById('hint-like');
+  const hintNope = document.getElementById('hint-nope');
+
+  card.style.transform = `translateX(${dx}px) translateY(${dy * 0.15}px) rotate(${dx * 0.12}deg)`;
+  card.style.opacity   = String(Math.max(0.35, 1 - Math.abs(dx) / 220));
+
+  if (hintLike && hintNope) {
+    if (dx > 0) {
+      hintLike.style.opacity = String(Math.min(1, dx / 70));
+      hintNope.style.opacity = '0';
+    } else {
+      hintNope.style.opacity = String(Math.min(1, -dx / 70));
+      hintLike.style.opacity = '0';
+    }
+  }
+}
+
+function onDragEnd(e) {
+  if (!isDragging) return;
+  isDragging = false;
+
+  const endX = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
+  const dx   = endX - dragStartX;
+
+  const card     = document.getElementById('name-card');
+  const hintLike = document.getElementById('hint-like');
+  const hintNope = document.getElementById('hint-nope');
+
+  card.classList.remove('is-dragging');
+
+  if (!isSwiping && currentName && Math.abs(dx) >= SWIPE_THRESHOLD) {
+    const liked = dx > 0;
+    // Continue the throw off-screen, then commit
+    card.style.transition = `transform ${ANIM_MS}ms ease-out, opacity ${ANIM_MS}ms ease-out`;
+    card.style.transform  = `translateX(${liked ? '130vw' : '-130vw'}) rotate(${liked ? 35 : -35}deg)`;
+    card.style.opacity    = '0';
+    if (hintLike) hintLike.style.opacity = '0';
+    if (hintNope) hintNope.style.opacity = '0';
+    swipe(liked, true);
+  } else {
+    // Snap back to centre with a spring
+    card.style.transition = 'transform 0.3s cubic-bezier(0.25,1.5,0.5,1), opacity 0.2s ease';
+    card.style.transform  = 'translateX(0) rotate(0deg)';
+    card.style.opacity    = '1';
+    if (hintLike) hintLike.style.opacity = '0';
+    if (hintNope) hintNope.style.opacity = '0';
+    setTimeout(() => {
+      if (!isDragging) card.style.transition = 'none';
+    }, 320);
+  }
+}
+
+// ── Modals ─────────────────────────────────────────────────────────────────
 
 function showMatchModal(name) {
   document.getElementById('match-modal-name').textContent = name;
@@ -132,7 +227,6 @@ function showDone() {
   const container = document.getElementById('card-container');
   if (!container) return;
 
-  // Read active filters from data attributes set by the template
   const gender = container.dataset.gender || 'all';
   const origin = container.dataset.origin || '';
   const style  = container.dataset.style  || '';
@@ -161,9 +255,8 @@ function showDone() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-  if (document.getElementById('card-container')) {
-    // Await the first card so we can immediately kick off a prefetch
-    // while the user reads the card — all subsequent swipes will be instant.
+  const container = document.getElementById('card-container');
+  if (container) {
     await loadNextName();
     _prefetchNext();
   }
@@ -173,6 +266,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   document.getElementById('match-modal-close')?.addEventListener('click', closeMatchModal);
   document.getElementById('match-modal-keep-swiping')?.addEventListener('click', closeMatchModal);
+
+  // Drag-to-swipe
+  const card = document.getElementById('name-card');
+  if (card) {
+    card.addEventListener('mousedown',  onDragStart);
+    card.addEventListener('touchstart', onDragStart, { passive: true });
+  }
+  document.addEventListener('mousemove', onDragMove);
+  document.addEventListener('touchmove', onDragMove, { passive: false });
+  document.addEventListener('mouseup',   onDragEnd);
+  document.addEventListener('touchend',  onDragEnd);
 
   document.addEventListener('keydown', (e) => {
     if (!document.getElementById('card-container')) return;
