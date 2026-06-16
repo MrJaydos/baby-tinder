@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Liked Names{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap" style="gap:0.75rem;">
+  <h2 class="page-header mb-0">&#9829; Liked Names</h2>
+  <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+    <a href="/matches" class="btn-outline-pink btn btn-sm">&#128149; Matches</a>
+    <a href="/tinder"  class="btn-pink btn btn-sm">Keep Swiping</a>
+  </div>
+</div>
+
+{% if swipes %}
+<p style="color:var(--muted);font-weight:600;margin-bottom:1.5rem;">
+  You've liked {{ swipes|length }} name{{ 's' if swipes|length != 1 }}.
+  {% if matched_ids %}
+    &#128149; {{ matched_ids|length }} of them
+    {{ 'is' if matched_ids|length == 1 else 'are' }} a match with your partner.
+  {% endif %}
+</p>
+<div class="row">
+  {% for swipe in swipes %}
+  <div class="col-sm-6 col-md-4 mb-4">
+    <div class="match-name-card" style="position:relative;">
+      {% if swipe.name_id in matched_ids %}
+      <div style="position:absolute;top:0.9rem;right:0.9rem;">
+        <span class="tag" style="background:var(--pink-light);color:var(--pink);font-size:0.7rem;">
+          &#128149; MATCH
+        </span>
+      </div>
+      {% endif %}
+      <h3>{{ swipe.baby_name.name }}</h3>
+      <div class="mb-2">
+        <span class="gender-badge gender-{{ swipe.baby_name.gender.lower() }}">
+          {% if swipe.baby_name.gender == 'M' %}&#9794; Boy
+          {% elif swipe.baby_name.gender == 'F' %}&#9792; Girl
+          {% else %}&#9893; Neutral{% endif %}
+        </span>
+      </div>
+      <div class="mb-2">
+        {% if swipe.baby_name.origin %}
+          <span class="tag tag-origin">{{ swipe.baby_name.origin }}</span>
+        {% endif %}
+        {% if swipe.baby_name.style %}
+          <span class="tag tag-style ml-1">{{ swipe.baby_name.style }}</span>
+        {% endif %}
+      </div>
+      {% if swipe.baby_name.meaning %}
+        <p class="card-meaning mb-0">{{ swipe.baby_name.meaning }}</p>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="text-center py-5">
+  <div style="font-size:5rem;">&#9829;</div>
+  <h4 style="font-weight:900;color:var(--plum);margin-top:1rem;">No liked names yet</h4>
+  <p style="color:var(--muted);font-weight:600;">
+    Start swiping or import a list of favourites from your account page.
+  </p>
+  <div style="display:flex;justify-content:center;gap:0.75rem;flex-wrap:wrap;" class="mt-3">
+    <a href="/tinder"  class="btn-pink btn">Start Swiping</a>
+    <a href="/account" class="btn-outline-pink btn">Import Names</a>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

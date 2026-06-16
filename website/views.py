@@ -216,6 +216,22 @@ def account():
                            origins=origins, styles=styles)
 
 
+@views.route('/liked')
+@login_required
+def liked():
+    liked_swipes = (Swipe.query
+                    .filter_by(user_id=current_user.id, liked=True)
+                    .join(BabyName, Swipe.name_id == BabyName.id)
+                    .order_by(BabyName.name)
+                    .all())
+    matched_ids = set()
+    if current_user.couple_id:
+        matched_ids = {m.name_id for m in
+                       Match.query.filter_by(couple_id=current_user.couple_id).all()}
+    return render_template('liked.html', user=current_user,
+                           swipes=liked_swipes, matched_ids=matched_ids)
+
+
 @views.route('/import-names', methods=['POST'])
 @login_required
 def import_names():
