@@ -157,15 +157,24 @@
         display: flex;
         flex-direction: column;
         justify-content: center;
-        transition: transform 0.25s cubic-bezier(.4,0,.2,1), opacity 0.25s ease;
-        opacity: 0;
+        opacity: 0; /* JS reveals via card-enter */
       }
-      .card-enter { animation: fadeSlideIn 0.25s ease forwards; }
-      .card-exit-right { transform: translateX(130%) rotate(18deg) !important; opacity: 0 !important; }
-      .card-exit-left  { transform: translateX(-130%) rotate(-18deg) !important; opacity: 0 !important; }
-      @keyframes fadeSlideIn {
-        from { opacity: 0; transform: translateY(20px) scale(0.97); }
-        to   { opacity: 1; transform: translateY(0) scale(1); }
+      /* All motion is keyframe-only — no CSS transition, so nothing
+         fights the animation when classes are swapped between cards. */
+      .card-enter      { animation: cardEnter     0.25s ease forwards; }
+      .card-exit-right { animation: cardExitRight 0.25s ease forwards; }
+      .card-exit-left  { animation: cardExitLeft  0.25s ease forwards; }
+      @keyframes cardEnter {
+        from { opacity: 0; transform: translateY(18px) scale(0.97); }
+        to   { opacity: 1; transform: translateY(0)    scale(1); }
+      }
+      @keyframes cardExitRight {
+        from { opacity: 1; transform: translateX(0)     rotate(0); }
+        to   { opacity: 0; transform: translateX(110%)  rotate(15deg); }
+      }
+      @keyframes cardExitLeft {
+        from { opacity: 1; transform: translateX(0)     rotate(0); }
+        to   { opacity: 0; transform: translateX(-110%) rotate(-15deg); }
       }
 
       .card-name {
