@@ -232,6 +232,23 @@ def liked():
                            swipes=liked_swipes, matched_ids=matched_ids)
 
 
+@views.route('/unlike/<int:name_id>', methods=['POST'])
+@login_required
+def unlike(name_id):
+    swipe = Swipe.query.filter_by(user_id=current_user.id, name_id=name_id).first()
+    if swipe:
+        db.session.delete(swipe)
+        # Remove any couple match for this name too
+        if current_user.couple_id:
+            match = Match.query.filter_by(
+                couple_id=current_user.couple_id, name_id=name_id
+            ).first()
+            if match:
+                db.session.delete(match)
+        db.session.commit()
+    return redirect(url_for('views.liked'))
+
+
 @views.route('/import-names', methods=['POST'])
 @login_required
 def import_names():

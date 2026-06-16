@@ -21,13 +21,18 @@
   {% for swipe in swipes %}
   <div class="col-sm-6 col-md-4 mb-4">
     <div class="match-name-card" style="position:relative;">
-      {% if swipe.name_id in matched_ids %}
-      <div style="position:absolute;top:0.9rem;right:0.9rem;">
+      <div style="position:absolute;top:0.75rem;right:0.75rem;display:flex;align-items:center;gap:0.4rem;">
+        {% if swipe.name_id in matched_ids %}
         <span class="tag" style="background:var(--pink-light);color:var(--pink);font-size:0.7rem;">
           &#128149; MATCH
         </span>
+        {% endif %}
+        <form method="POST" action="/unlike/{{ swipe.name_id }}" style="margin:0;">
+          <button type="submit" title="Remove"
+            style="background:none;border:none;cursor:pointer;color:#ccc;font-size:1.1rem;line-height:1;padding:0.1rem 0.2rem;border-radius:50%;transition:color 0.15s;"
+            onmouseover="this.style.color='#e53935'" onmouseout="this.style.color='#ccc'">&#10005;</button>
+        </form>
       </div>
-      {% endif %}
       <h3>{{ swipe.baby_name.name }}</h3>
       <div class="mb-2">
         <span class="gender-badge gender-{{ swipe.baby_name.gender.lower() }}">
