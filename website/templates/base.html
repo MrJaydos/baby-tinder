@@ -3,108 +3,372 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"
       integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous" />
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css"
       crossorigin="anonymous" />
     <title>Baby Tinder | {% block title %}{% endblock %}</title>
     <style>
-      body { background-color: #f8f9fa; }
-      .navbar-brand { font-weight: 700; font-size: 1.4rem; }
+      :root {
+        --pink:        #e91e8c;
+        --pink-light:  #fce4ec;
+        --pink-mid:    #f48fb1;
+        --plum:        #2d1347;
+        --plum-light:  #4a1f6e;
+        --bg:          #fff5f9;
+        --card-bg:     #ffffff;
+        --text:        #2d1347;
+        --muted:       #9e8fa4;
+        --boy-bg:      #e3f2fd;
+        --boy-text:    #1565c0;
+        --girl-bg:     #fce4ec;
+        --girl-text:   #880e4f;
+        --neutral-bg:  #ede7f6;
+        --neutral-text:#4527a0;
+        --radius:      20px;
+        --shadow:      0 8px 32px rgba(233,30,140,0.10);
+      }
 
-      /* Swipe card */
+      *, *::before, *::after { box-sizing: border-box; }
+
+      body {
+        font-family: 'Nunito', sans-serif;
+        background-color: var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+      }
+
+      /* ── Navbar ── */
+      .navbar {
+        background: var(--plum) !important;
+        padding: 0.75rem 1.5rem;
+        box-shadow: 0 2px 16px rgba(45,19,71,0.3);
+      }
+      .navbar-brand {
+        font-size: 1.45rem;
+        font-weight: 900;
+        color: #fff !important;
+        letter-spacing: -0.3px;
+      }
+      .navbar-brand span { color: var(--pink-mid); }
+      .nav-item .nav-link {
+        color: rgba(255,255,255,0.80) !important;
+        font-weight: 600;
+        border-radius: 8px;
+        padding: 0.4rem 0.8rem !important;
+        transition: background 0.15s, color 0.15s;
+      }
+      .nav-item .nav-link:hover,
+      .nav-item .nav-link.active {
+        color: #fff !important;
+        background: rgba(255,255,255,0.12);
+      }
+      .navbar-toggler { border-color: rgba(255,255,255,0.3); }
+      .navbar-toggler-icon {
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='30' height='30' viewBox='0 0 30 30'%3e%3cpath stroke='rgba(255,255,255,0.8)' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+      }
+
+      /* ── Flash alerts ── */
+      .alert {
+        border: none;
+        border-radius: 0;
+        font-weight: 600;
+        margin-bottom: 0;
+      }
+      .alert-success { background: #d4f5e2; color: #145a32; }
+      .alert-danger  { background: #fde8f0; color: #7b1246; }
+
+      /* ── Shared card style ── */
+      .bt-card {
+        background: var(--card-bg);
+        border: none;
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+      }
+
+      /* ── Buttons ── */
+      .btn-pink {
+        background: var(--pink);
+        color: #fff;
+        border: none;
+        border-radius: 999px;
+        font-weight: 700;
+        padding: 0.55rem 1.6rem;
+        transition: filter 0.15s, transform 0.1s;
+      }
+      .btn-pink:hover { filter: brightness(1.1); color: #fff; transform: translateY(-1px); }
+
+      .btn-plum {
+        background: var(--plum);
+        color: #fff;
+        border: none;
+        border-radius: 999px;
+        font-weight: 700;
+        padding: 0.55rem 1.6rem;
+        transition: filter 0.15s, transform 0.1s;
+      }
+      .btn-plum:hover { filter: brightness(1.2); color: #fff; transform: translateY(-1px); }
+
+      .btn-outline-pink {
+        border: 2px solid var(--pink);
+        color: var(--pink);
+        background: transparent;
+        border-radius: 999px;
+        font-weight: 700;
+        padding: 0.5rem 1.5rem;
+        transition: background 0.15s, color 0.15s;
+      }
+      .btn-outline-pink:hover { background: var(--pink); color: #fff; }
+
+      /* ── Gender badges ── */
+      .gender-badge {
+        display: inline-block;
+        padding: 0.2rem 0.8rem;
+        border-radius: 999px;
+        font-size: 0.85rem;
+        font-weight: 700;
+      }
+      .gender-m { background: var(--boy-bg);     color: var(--boy-text); }
+      .gender-f { background: var(--girl-bg);    color: var(--girl-text); }
+      .gender-n { background: var(--neutral-bg); color: var(--neutral-text); }
+
+      /* ── Origin / style tags ── */
+      .tag {
+        display: inline-block;
+        padding: 0.2rem 0.7rem;
+        border-radius: 999px;
+        font-size: 0.78rem;
+        font-weight: 600;
+      }
+      .tag-origin { background: #ede7f6; color: #4527a0; }
+      .tag-style  { background: #e8f5e9; color: #1b5e20; }
+
+      /* ── Swipe card ── */
       .name-card {
-        background: white;
-        border-radius: 20px;
-        box-shadow: 0 8px 32px rgba(0,0,0,0.12);
-        padding: 2.5rem 2rem;
+        background: var(--card-bg);
+        border-radius: 28px;
+        box-shadow: 0 12px 48px rgba(233,30,140,0.13);
+        padding: 3rem 2.5rem 2.5rem;
         text-align: center;
-        min-height: 320px;
+        min-height: 340px;
         display: flex;
         flex-direction: column;
         justify-content: center;
-        transition: transform 0.35s ease, opacity 0.35s ease;
+        transition: transform 0.35s cubic-bezier(.4,0,.2,1), opacity 0.35s ease;
+        position: relative;
+        overflow: hidden;
+      }
+      .name-card::before {
+        content: '♥';
+        position: absolute;
+        top: -10px; right: 18px;
+        font-size: 5rem;
+        color: var(--pink-light);
+        line-height: 1;
+        pointer-events: none;
       }
       .card-enter { animation: fadeSlideIn 0.35s ease; }
-      .card-exit-right { transform: translateX(120%) rotate(15deg); opacity: 0; }
-      .card-exit-left  { transform: translateX(-120%) rotate(-15deg); opacity: 0; }
+      .card-exit-right { transform: translateX(130%) rotate(18deg); opacity: 0; }
+      .card-exit-left  { transform: translateX(-130%) rotate(-18deg); opacity: 0; }
       @keyframes fadeSlideIn {
-        from { opacity: 0; transform: translateY(20px); }
-        to   { opacity: 1; transform: translateY(0); }
+        from { opacity: 0; transform: translateY(24px) scale(0.97); }
+        to   { opacity: 1; transform: translateY(0) scale(1); }
       }
 
-      .card-name { font-size: 3rem; font-weight: 700; margin-bottom: 0.5rem; }
-
-      .gender-badge {
-        display: inline-block;
-        padding: 0.25rem 0.75rem;
-        border-radius: 999px;
-        font-size: 0.9rem;
-        font-weight: 600;
-        margin-bottom: 0.5rem;
+      .card-name {
+        font-size: 3.6rem;
+        font-weight: 900;
+        color: var(--plum);
+        line-height: 1.1;
+        margin-bottom: 0.75rem;
       }
-      .gender-m { background: #cce5ff; color: #004085; }
-      .gender-f { background: #f8d7da; color: #721c24; }
-      .gender-n { background: #e2d9f3; color: #4a235a; }
-
-      .origin-tag {
-        display: inline-block;
-        background: #e9ecef;
-        color: #495057;
-        padding: 0.2rem 0.65rem;
-        border-radius: 999px;
-        font-size: 0.8rem;
-        margin-bottom: 1rem;
+      .card-meaning {
+        color: var(--muted);
+        font-size: 0.95rem;
+        line-height: 1.6;
+        font-style: italic;
       }
 
-      .card-meaning { color: #6c757d; font-size: 0.95rem; line-height: 1.5; }
-
-      /* Swipe buttons */
+      /* ── Swipe buttons ── */
       .swipe-btn {
-        width: 72px; height: 72px;
+        width: 76px; height: 76px;
         border-radius: 50%;
         border: 3px solid;
-        font-size: 1.6rem;
+        font-size: 1.7rem;
         display: flex; align-items: center; justify-content: center;
         cursor: pointer;
         transition: transform 0.15s, box-shadow 0.15s;
         background: white;
+        outline: none;
       }
-      .swipe-btn:hover { transform: scale(1.1); box-shadow: 0 6px 20px rgba(0,0,0,0.15); }
-      .swipe-btn.dislike { border-color: #dc3545; color: #dc3545; }
-      .swipe-btn.like    { border-color: #28a745; color: #28a745; }
+      .swipe-btn:focus { outline: none; }
+      .swipe-btn.dislike {
+        border-color: #b0bec5;
+        color: #78909c;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+      }
+      .swipe-btn.dislike:hover {
+        transform: scale(1.12);
+        border-color: #78909c;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.14);
+      }
+      .swipe-btn.like {
+        border-color: var(--pink);
+        color: var(--pink);
+        box-shadow: 0 4px 16px rgba(233,30,140,0.18);
+      }
+      .swipe-btn.like:hover {
+        transform: scale(1.12);
+        background: var(--pink);
+        color: white;
+        box-shadow: 0 8px 28px rgba(233,30,140,0.35);
+      }
 
-      /* Match modal */
+      /* ── Match modal ── */
       #match-modal {
         display: none;
         position: fixed; inset: 0;
-        background: rgba(0,0,0,0.6);
+        background: rgba(45,19,71,0.65);
+        backdrop-filter: blur(4px);
         z-index: 9999;
         align-items: center; justify-content: center;
       }
       .match-modal-box {
         background: white;
-        border-radius: 24px;
-        padding: 3rem 2.5rem;
+        border-radius: 28px;
+        padding: 3.5rem 2.5rem;
         text-align: center;
         max-width: 420px;
-        width: 90%;
+        width: 92%;
         animation: fadeSlideIn 0.3s ease;
+        box-shadow: 0 24px 80px rgba(233,30,140,0.25);
       }
-      .match-modal-box h1 { font-size: 2.5rem; }
-      .match-modal-name { font-size: 2.2rem; font-weight: 700; color: #e91e8c; margin: 1rem 0; }
+      .match-emoji { font-size: 4rem; }
+      .match-modal-name {
+        font-size: 2.6rem;
+        font-weight: 900;
+        color: var(--pink);
+        margin: 0.75rem 0 0.5rem;
+      }
 
-      /* Done state */
-      .done-message { text-align: center; padding: 3rem 1rem; }
+      /* ── Done state ── */
+      .done-message { text-align: center; padding: 4rem 1rem; }
       .done-icon { font-size: 4rem; margin-bottom: 1rem; }
+      .done-message h3 { font-weight: 800; color: var(--plum); }
 
-      /* Stats card on home */
-      .stat-card { border-radius: 16px; border: none; box-shadow: 0 4px 16px rgba(0,0,0,0.07); }
+      /* ── Stat cards (home) ── */
+      .stat-card {
+        background: var(--card-bg);
+        border: none;
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        text-align: center;
+        padding: 2rem 1rem;
+        transition: transform 0.15s;
+      }
+      .stat-card:hover { transform: translateY(-3px); }
+      .stat-icon { font-size: 2.4rem; margin-bottom: 0.5rem; }
+      .stat-count { font-size: 2.4rem; font-weight: 900; color: var(--plum); line-height: 1; }
+      .stat-label { color: var(--muted); font-size: 0.9rem; font-weight: 600; margin: 0.25rem 0 1rem; }
+
+      /* ── Section card (account, couple) ── */
+      .section-card {
+        background: var(--card-bg);
+        border: none;
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        padding: 2rem;
+        margin-bottom: 1.5rem;
+      }
+      .section-card h5 {
+        font-weight: 800;
+        color: var(--plum);
+        margin-bottom: 1rem;
+      }
+
+      /* ── Form controls ── */
+      .form-control {
+        border-radius: 12px;
+        border: 2px solid #e8e0ef;
+        font-family: 'Nunito', sans-serif;
+        font-weight: 600;
+        color: var(--text);
+        transition: border-color 0.15s, box-shadow 0.15s;
+      }
+      .form-control:focus {
+        border-color: var(--pink);
+        box-shadow: 0 0 0 3px rgba(233,30,140,0.12);
+      }
+
+      /* ── Couple code display ── */
+      .couple-code {
+        font-size: 2.5rem;
+        font-weight: 900;
+        letter-spacing: 0.4rem;
+        color: var(--pink);
+        background: var(--pink-light);
+        padding: 0.75rem 2rem;
+        border-radius: 16px;
+        display: inline-block;
+        margin: 0.75rem 0;
+      }
+
+      /* ── Match card (matches page) ── */
+      .match-name-card {
+        background: var(--card-bg);
+        border: none;
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        padding: 1.75rem 1.25rem;
+        text-align: center;
+        height: 100%;
+        transition: transform 0.15s, box-shadow 0.15s;
+      }
+      .match-name-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 16px 48px rgba(233,30,140,0.18);
+      }
+      .match-name-card h3 {
+        font-size: 1.7rem;
+        font-weight: 900;
+        color: var(--plum);
+        margin-bottom: 0.5rem;
+      }
+
+      /* ── Page header ── */
+      .page-header {
+        font-size: 1.9rem;
+        font-weight: 900;
+        color: var(--plum);
+        margin-bottom: 1.5rem;
+      }
+
+      /* ── Auth pages ── */
+      .auth-card {
+        background: var(--card-bg);
+        border: none;
+        border-radius: 28px;
+        box-shadow: 0 16px 64px rgba(233,30,140,0.13);
+        padding: 3rem 2.5rem;
+        margin-top: 3rem;
+      }
+      .auth-card h3 {
+        font-weight: 900;
+        color: var(--plum);
+        margin-bottom: 1.5rem;
+      }
+
+      /* ── Link colour ── */
+      a { color: var(--pink); }
+      a:hover { color: var(--plum); }
     </style>
   </head>
   <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-      <a class="navbar-brand" href="/">&#128149; Baby Tinder</a>
+    <nav class="navbar navbar-expand-lg">
+      <a class="navbar-brand" href="/">&#128149; Baby <span>Tinder</span></a>
       <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbar">
         <span class="navbar-toggler-icon"></span>
       </button>

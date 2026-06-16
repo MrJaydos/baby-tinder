@@ -1,43 +1,91 @@
 {% extends "base.html" %}
 {% block title %}Account{% endblock %}
 {% block content %}
-<div class="row justify-content-center">
+<h2 class="page-header">Account</h2>
+
+<div class="row">
   <div class="col-md-6">
-    <h2 class="mb-4">&#128100; Account</h2>
 
-    <div class="card mb-4" style="border-radius:16px; border:none; box-shadow:0 4px 16px rgba(0,0,0,0.08);">
-      <div class="card-body py-4">
-        <h5 class="font-weight-bold mb-3">Profile</h5>
-        <p class="mb-1"><span class="text-muted">Name:</span> <strong>{{ user.first_name }}</strong></p>
-        <p class="mb-0"><span class="text-muted">Email:</span> <strong>{{ user.email }}</strong></p>
-      </div>
+    <!-- Profile -->
+    <div class="section-card">
+      <h5>&#128100; Profile</h5>
+      <p class="mb-1"><span style="color:var(--muted);font-weight:700;">Name</span><br>
+        <strong>{{ user.first_name }}</strong></p>
+      <p class="mb-0"><span style="color:var(--muted);font-weight:700;">Email</span><br>
+        <strong>{{ user.email }}</strong></p>
     </div>
 
-    <div class="card mb-4" style="border-radius:16px; border:none; box-shadow:0 4px 16px rgba(0,0,0,0.08);">
-      <div class="card-body py-4">
-        <h5 class="font-weight-bold mb-3">&#128106; Couple</h5>
-        {% if user.couple_id %}
-          <p class="mb-1">
-            <span class="text-muted">Your code:</span>
-            <strong class="text-primary" style="letter-spacing:0.2rem;">{{ user.couple.code }}</strong>
+    <!-- Couple -->
+    <div class="section-card">
+      <h5>&#128106; Couple</h5>
+      {% if user.couple_id %}
+        <p style="color:var(--muted);font-weight:700;margin-bottom:0.25rem;">Your couple code</p>
+        <div class="couple-code">{{ user.couple.code }}</div>
+        <p class="mt-2" style="font-size:0.85rem;color:var(--muted);">Share this with your partner so they can join.</p>
+        {% if partner %}
+          <p class="mb-2"><span style="color:var(--muted);font-weight:700;">Partner:</span>
+            <strong>{{ partner.first_name }}</strong>
+            <span style="color:var(--muted);">({{ partner.email }})</span>
           </p>
-          {% if partner %}
-          <p class="mb-2">
-            <span class="text-muted">Partner:</span>
-            <strong>{{ partner.first_name }}</strong> ({{ partner.email }})
-          </p>
-          {% else %}
-          <p class="mb-2 text-warning">Partner not joined yet &mdash; share your code above!</p>
-          {% endif %}
-          <a href="/couple" class="btn btn-outline-secondary btn-sm">Couple Settings</a>
         {% else %}
-          <p class="text-muted mb-2">You're not in a couple yet.</p>
-          <a href="/couple" class="btn btn-primary btn-sm">Set Up Couple</a>
+          <p class="mb-2" style="color:#e67e22;font-weight:700;">&#9888; Partner hasn't joined yet.</p>
         {% endif %}
-      </div>
+        <a href="/couple" class="btn-outline-pink btn btn-sm">Couple Settings</a>
+      {% else %}
+        <p style="color:var(--muted);font-weight:600;">You're not in a couple yet.</p>
+        <a href="/couple" class="btn-pink btn">Set Up Couple</a>
+      {% endif %}
     </div>
 
-    <a href="/logout" class="btn btn-outline-danger">Logout</a>
+    <a href="/logout" class="btn btn-sm" style="color:var(--muted);font-weight:700;">Logout</a>
+
+  </div>
+
+  <div class="col-md-6 mt-4 mt-md-0">
+
+    <!-- Swipe preferences -->
+    <div class="section-card">
+      <h5>&#127807; Swipe Preferences</h5>
+      <p style="color:var(--muted);font-size:0.9rem;font-weight:600;">
+        These filters apply whenever you swipe. Change them here anytime.
+      </p>
+      <form method="POST">
+        <input type="hidden" name="action" value="save_prefs">
+
+        <div class="form-group">
+          <label style="font-weight:700;color:var(--plum);">Gender</label>
+          <select class="form-control" name="pref_gender">
+            <option value="all"  {% if (user.pref_gender or 'all') == 'all' %}selected{% endif %}>All genders</option>
+            <option value="M"    {% if user.pref_gender == 'M' %}selected{% endif %}>&#9794; Boy</option>
+            <option value="F"    {% if user.pref_gender == 'F' %}selected{% endif %}>&#9792; Girl</option>
+            <option value="N"    {% if user.pref_gender == 'N' %}selected{% endif %}>&#9893; Neutral</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label style="font-weight:700;color:var(--plum);">Origin</label>
+          <select class="form-control" name="pref_origin">
+            <option value="" {% if not user.pref_origin %}selected{% endif %}>All origins</option>
+            {% for origin in origins %}
+            <option value="{{ origin }}" {% if user.pref_origin == origin %}selected{% endif %}>{{ origin }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label style="font-weight:700;color:var(--plum);">Style / Type</label>
+          <select class="form-control" name="pref_style">
+            <option value="" {% if not user.pref_style %}selected{% endif %}>All styles</option>
+            {% for style in styles %}
+            <option value="{{ style }}" {% if user.pref_style == style %}selected{% endif %}>{{ style }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <button type="submit" class="btn-pink btn">Save Preferences</button>
+      </form>
+    </div>
+
   </div>
 </div>
 {% endblock %}

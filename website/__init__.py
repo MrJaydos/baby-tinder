@@ -30,6 +30,7 @@ def create_app():
     os.makedirs(app.instance_path, exist_ok=True)
     with app.app_context():
         db.create_all()
+        _migrate_db()
         _auto_load_names(app)
 
     login_manager = LoginManager()
@@ -41,6 +42,23 @@ def create_app():
         return User.query.get(int(user_id))
 
     return app
+
+
+def _migrate_db():
+    """Add columns introduced after initial schema creation."""
+    from sqlalchemy import text
+    new_cols = [
+        ('pref_gender', "VARCHAR(10) NOT NULL DEFAULT 'all'"),
+        ('pref_origin', "VARCHAR(100) NOT NULL DEFAULT ''"),
+        ('pref_style',  "VARCHAR(100) NOT NULL DEFAULT ''"),
+    ]
+    with db.engine.connect() as conn:
+        for col_name, col_def in new_cols:
+            try:
+                conn.execute(text(f'ALTER TABLE "user" ADD COLUMN {col_name} {col_def}'))
+                conn.commit()
+            except Exception:
+                pass  # Column already exists
 
 
 def _auto_load_names(app):

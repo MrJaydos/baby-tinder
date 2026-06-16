@@ -67,32 +67,24 @@ def couple():
 @views.route('/tinder')
 @login_required
 def tinder():
-    origins = [row[0] for row in
-               db.session.query(BabyName.origin).distinct()
-               .filter(BabyName.origin.isnot(None), BabyName.origin != '')
-               .order_by(BabyName.origin).all()]
-    styles = [row[0] for row in
-              db.session.query(BabyName.style).distinct()
-              .filter(BabyName.style.isnot(None), BabyName.style != '')
-              .order_by(BabyName.style).all()]
-    return render_template('tinder.html', user=current_user, origins=origins, styles=styles)
+    return render_template('tinder.html', user=current_user)
 
 
 @views.route('/api/next-name')
 @login_required
 def next_name():
-    gender = request.args.get('gender', 'all')
-    origin = request.args.get('origin', 'all')
-    style = request.args.get('style', 'all')
+    gender = current_user.pref_gender or 'all'
+    origin = current_user.pref_origin or 'all'
+    style = current_user.pref_style or 'all'
 
     swiped = db.session.query(Swipe.name_id).filter_by(user_id=current_user.id).subquery()
     query = BabyName.query.filter(BabyName.id.notin_(swiped))
 
     if gender != 'all':
         query = query.filter(BabyName.gender == gender.upper())
-    if origin != 'all':
+    if origin and origin != 'all':
         query = query.filter(BabyName.origin == origin)
-    if style != 'all':
+    if style and style != 'all':
         query = query.filter(BabyName.style == style)
 
     name = query.order_by(db.func.random()).first()
@@ -162,13 +154,32 @@ def matches():
     return render_template('matches.html', user=current_user, matches=all_matches)
 
 
-@views.route('/account')
+@views.route('/account', methods=['GET', 'POST'])
 @login_required
 def account():
+    origins = [row[0] for row in
+               db.session.query(BabyName.origin).distinct()
+               .filter(BabyName.origin.isnot(None), BabyName.origin != '')
+               .order_by(BabyName.origin).all()]
+    styles = [row[0] for row in
+              db.session.query(BabyName.style).distinct()
+              .filter(BabyName.style.isnot(None), BabyName.style != '')
+              .order_by(BabyName.style).all()]
+
+    if request.method == 'POST' and request.form.get('action') == 'save_prefs':
+        current_user.pref_gender = request.form.get('pref_gender', 'all')
+        current_user.pref_origin = request.form.get('pref_origin', '')
+        current_user.pref_style = request.form.get('pref_style', '')
+        db.session.commit()
+        flash('Preferences saved!', category='success')
+        return redirect(url_for('views.account'))
+
     partner = None
     if current_user.couple_id:
         partner = User.query.filter(
             User.couple_id == current_user.couple_id,
             User.id != current_user.id
         ).first()
-    return render_template('account.html', user=current_user, partner=partner)
+
+    return render_template('account.html', user=current_user, partner=partner,
+                           origins=origins, styles=styles)

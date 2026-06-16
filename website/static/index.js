@@ -1,5 +1,4 @@
 let currentName = null;
-let filters = { gender: 'all', origin: 'all', style: 'all' };
 let isSwiping = false;
 
 const GENDER_LABEL = { M: 'Boy', F: 'Girl', N: 'Neutral' };
@@ -7,8 +6,8 @@ const GENDER_EMOJI = { M: '♂', F: '♀', N: '⚥' };
 
 async function loadNextName() {
   if (isSwiping) return;
-  const params = new URLSearchParams(filters);
-  const res = await fetch('/api/next-name?' + params.toString());
+
+  const res = await fetch('/api/next-name');
   const data = await res.json();
 
   if (data.done) {
@@ -72,8 +71,7 @@ async function swipe(liked) {
 
 function showMatchModal(name) {
   document.getElementById('match-modal-name').textContent = name;
-  const modal = document.getElementById('match-modal');
-  modal.style.display = 'flex';
+  document.getElementById('match-modal').style.display = 'flex';
   document.body.style.overflow = 'hidden';
 }
 
@@ -89,7 +87,7 @@ function showDone() {
     <div class="done-message">
       <div class="done-icon">&#127881;</div>
       <h3>You've seen all the names!</h3>
-      <p>Change your filters to see more, or check your <a href="/matches">matches</a>.</p>
+      <p>Update your <a href="/account">preferences</a> to see more, or check your <a href="/matches">matches</a>.</p>
     </div>`;
 }
 
@@ -101,24 +99,6 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('like-btn')?.addEventListener('click', () => swipe(true));
   document.getElementById('dislike-btn')?.addEventListener('click', () => swipe(false));
 
-  document.getElementById('gender-filter')?.addEventListener('change', function () {
-    filters.gender = this.value;
-    currentName = null;
-    loadNextName();
-  });
-
-  document.getElementById('origin-filter')?.addEventListener('change', function () {
-    filters.origin = this.value;
-    currentName = null;
-    loadNextName();
-  });
-
-  document.getElementById('style-filter')?.addEventListener('change', function () {
-    filters.style = this.value;
-    currentName = null;
-    loadNextName();
-  });
-
   document.getElementById('match-modal-close')?.addEventListener('click', closeMatchModal);
   document.getElementById('match-modal-keep-swiping')?.addEventListener('click', closeMatchModal);
 
@@ -126,6 +106,6 @@ document.addEventListener('DOMContentLoaded', () => {
   document.addEventListener('keydown', (e) => {
     if (!document.getElementById('card-container')) return;
     if (e.key === 'ArrowRight' || e.key === 'l') swipe(true);
-    if (e.key === 'ArrowLeft' || e.key === 'h') swipe(false);
+    if (e.key === 'ArrowLeft'  || e.key === 'h') swipe(false);
   });
 });

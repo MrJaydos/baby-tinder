@@ -3,50 +3,52 @@
 {% block content %}
 <div class="row justify-content-center">
   <div class="col-md-6">
-    <h2 class="mb-4">&#128106; Couple Setup</h2>
+    <h2 class="page-header">&#128106; Couple Setup</h2>
 
     {% if user.couple_id %}
-    <div class="card mb-4" style="border-radius:16px; border:none; box-shadow:0 4px 16px rgba(0,0,0,0.08);">
-      <div class="card-body text-center py-4">
-        <h5 class="font-weight-bold">Your Couple Code</h5>
-        <div class="display-4 font-weight-bold text-primary my-3" style="letter-spacing:0.3rem;">
-          {{ user.couple.code }}
-        </div>
-        <p class="text-muted">Share this code with your partner so they can join.</p>
-        <form method="POST" class="mt-3">
-          <input type="hidden" name="action" value="leave">
-          <button type="submit" class="btn btn-outline-danger btn-sm"
-            onclick="return confirm('Are you sure you want to leave this couple? Your swipes will be kept.')">
-            Leave Couple
-          </button>
-        </form>
-      </div>
+    <div class="section-card text-center">
+      <h5>Your Couple Code</h5>
+      <div class="couple-code">{{ user.couple.code }}</div>
+      <p style="color:var(--muted);font-weight:600;font-size:0.9rem;">
+        Share this with your partner so they can join from their account.
+      </p>
+      <form method="POST" class="mt-3">
+        <input type="hidden" name="action" value="leave">
+        <button type="submit" class="btn btn-sm"
+          style="color:var(--muted);font-weight:700;border:2px solid #e0e0e0;border-radius:999px;padding:0.3rem 1.2rem;"
+          onclick="return confirm('Leave this couple? Your swipe history will be kept.')">
+          Leave Couple
+        </button>
+      </form>
     </div>
     {% else %}
-    <div class="card mb-4" style="border-radius:16px; border:none; box-shadow:0 4px 16px rgba(0,0,0,0.08);">
-      <div class="card-body py-4">
-        <h5 class="font-weight-bold">Create a new couple</h5>
-        <p class="text-muted">You'll get a code to share with your partner.</p>
-        <form method="POST">
-          <input type="hidden" name="action" value="create">
-          <button type="submit" class="btn btn-primary">Create Couple</button>
-        </form>
-      </div>
+
+    <div class="section-card mb-0">
+      <h5>&#10024; Create a new couple</h5>
+      <p style="color:var(--muted);font-weight:600;">You'll get a 6-character code to share with your partner.</p>
+      <form method="POST">
+        <input type="hidden" name="action" value="create">
+        <button type="submit" class="btn-pink btn">Create Couple</button>
+      </form>
     </div>
 
-    <div class="card" style="border-radius:16px; border:none; box-shadow:0 4px 16px rgba(0,0,0,0.08);">
-      <div class="card-body py-4">
-        <h5 class="font-weight-bold">Join your partner's couple</h5>
-        <p class="text-muted">Enter the code they created.</p>
-        <form method="POST" class="form-inline">
-          <input type="hidden" name="action" value="join">
-          <input type="text" name="code" class="form-control mr-2 mb-2"
-            placeholder="Enter 6-character code" maxlength="6"
-            style="letter-spacing:0.2rem; text-transform:uppercase; font-weight:bold; width:200px;" required>
-          <button type="submit" class="btn btn-success mb-2">Join</button>
-        </form>
-      </div>
+    <div class="text-center my-3" style="color:var(--muted);font-weight:700;">— or —</div>
+
+    <div class="section-card">
+      <h5>&#128279; Join your partner's couple</h5>
+      <p style="color:var(--muted);font-weight:600;">Enter the 6-character code they created.</p>
+      <form method="POST">
+        <input type="hidden" name="action" value="join">
+        <div class="form-group">
+          <input type="text" name="code" class="form-control"
+            placeholder="Enter code e.g. AB12CD"
+            maxlength="6" required
+            style="letter-spacing:0.3rem;text-transform:uppercase;font-weight:900;font-size:1.2rem;text-align:center;" />
+        </div>
+        <button type="submit" class="btn-pink btn w-100">Join Couple</button>
+      </form>
     </div>
+
     {% endif %}
   </div>
 </div>

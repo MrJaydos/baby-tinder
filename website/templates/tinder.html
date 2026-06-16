@@ -1,95 +1,74 @@
 {% extends "base.html" %}
 {% block title %}Swipe{% endblock %}
 {% block content %}
-<div class="row">
-  <!-- Filters sidebar -->
-  <div class="col-md-3 mb-4">
-    <div class="card shadow-sm" style="border-radius:16px; border:none;">
-      <div class="card-body">
-        <h6 class="font-weight-bold mb-3">&#127807; Filters</h6>
-        <div class="form-group">
-          <label class="small font-weight-bold text-muted">Gender</label>
-          <select class="form-control form-control-sm" id="gender-filter">
-            <option value="all">All genders</option>
-            <option value="M">&#9794; Boy</option>
-            <option value="F">&#9792; Girl</option>
-            <option value="N">&#9893; Neutral</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="small font-weight-bold text-muted">Origin</label>
-          <select class="form-control form-control-sm" id="origin-filter">
-            <option value="all">All origins</option>
-            {% for origin in origins %}
-            <option value="{{ origin }}">{{ origin }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div class="form-group mb-0">
-          <label class="small font-weight-bold text-muted">Style / Type</label>
-          <select class="form-control form-control-sm" id="style-filter">
-            <option value="all">All styles</option>
-            {% for style in styles %}
-            <option value="{{ style }}">{{ style }}</option>
-            {% endfor %}
-          </select>
-        </div>
-      </div>
-    </div>
+<div class="row justify-content-center">
+  <div class="col-12 col-sm-10 col-md-7 col-lg-5">
 
-    {% if not user.couple_id %}
-    <div class="alert alert-info mt-3" style="border-radius:12px; font-size:0.85rem;">
-      <strong>Tip:</strong> <a href="/couple">Set up your couple</a> to see matches when your partner also likes a name!
-    </div>
-    {% endif %}
-
-    <div class="mt-3 text-muted" style="font-size:0.8rem;">
-      <strong>Keyboard shortcuts:</strong><br>
-      &#8594; or <kbd>L</kbd> &mdash; Like<br>
-      &#8592; or <kbd>H</kbd> &mdash; Pass
-    </div>
-  </div>
-
-  <!-- Card area -->
-  <div class="col-md-6">
     <div id="card-container">
+      <!-- Name card -->
       <div id="name-card" class="name-card">
-        <div class="card-name" id="card-name">...</div>
-        <div>
+        <div class="card-name" id="card-name"></div>
+        <div class="mb-3">
           <span id="card-gender" class="gender-badge"></span>
-          <span id="card-origin" class="origin-tag ml-1"></span>
-          <span id="card-style" class="origin-tag ml-1" style="background:#d4edda; color:#155724;"></span>
+          <span id="card-origin" class="tag tag-origin ml-1"></span>
+          <span id="card-style"  class="tag tag-style  ml-1"></span>
         </div>
-        <p id="card-meaning" class="card-meaning mt-3"></p>
+        <p id="card-meaning" class="card-meaning"></p>
       </div>
 
-      <div class="d-flex justify-content-center align-items-center mt-4" style="gap: 3rem;">
-        <button id="dislike-btn" class="swipe-btn dislike" title="Pass (&#8592;)">
-          &#10005;
-        </button>
-        <button id="like-btn" class="swipe-btn like" title="Like (&#8594;)">
-          &#9829;
-        </button>
+      <!-- Swipe buttons -->
+      <div class="d-flex justify-content-center align-items-center mt-4" style="gap: 3.5rem;">
+        <div class="text-center">
+          <button id="dislike-btn" class="swipe-btn dislike" title="Pass (&#8592;)">&#10005;</button>
+          <div class="mt-2" style="font-size:0.75rem; font-weight:700; color:#b0bec5; letter-spacing:0.05em;">PASS</div>
+        </div>
+        <div class="text-center">
+          <button id="like-btn" class="swipe-btn like" title="Like (&#8594;)">&#9829;</button>
+          <div class="mt-2" style="font-size:0.75rem; font-weight:700; color:var(--pink); letter-spacing:0.05em;">LOVE IT</div>
+        </div>
       </div>
+
+      <!-- Active filters hint -->
+      {% set pref_gender = user.pref_gender or 'all' %}
+      {% set pref_origin = user.pref_origin or '' %}
+      {% set pref_style  = user.pref_style  or '' %}
+      {% if pref_gender != 'all' or pref_origin or pref_style %}
+      <p class="text-center mt-4" style="font-size:0.82rem; color:var(--muted); font-weight:600;">
+        Filtered:
+        {% if pref_gender == 'M' %}Boy names{% elif pref_gender == 'F' %}Girl names{% elif pref_gender == 'N' %}Neutral names{% endif %}
+        {% if pref_origin %}&bull; {{ pref_origin }}{% endif %}
+        {% if pref_style  %}&bull; {{ pref_style  }}{% endif %}
+        &mdash; <a href="/account">change</a>
+      </p>
+      {% else %}
+      <p class="text-center mt-4" style="font-size:0.82rem; color:var(--muted); font-weight:600;">
+        Showing all names &mdash; <a href="/account">set preferences</a>
+      </p>
+      {% endif %}
     </div>
-  </div>
 
-  <!-- Right column: spacer on desktop -->
-  <div class="col-md-3"></div>
+  </div>
+</div>
+
+<!-- Keyboard hint -->
+<div class="text-center mt-2" style="font-size:0.78rem; color:#ccc;">
+  Tip: use <kbd style="background:var(--plum);color:#fff;border:none;border-radius:4px;padding:1px 6px;">&#8592;</kbd>
+  and <kbd style="background:var(--plum);color:#fff;border:none;border-radius:4px;padding:1px 6px;">&#8594;</kbd> arrow keys to swipe
 </div>
 
 <!-- Match modal -->
 <div id="match-modal">
   <div class="match-modal-box">
-    <div style="font-size:3.5rem">&#128149;</div>
-    <h2 class="mt-2">It's a Match!</h2>
+    <div class="match-emoji">&#128149;</div>
+    <h2 class="mt-2" style="font-weight:900; color:var(--plum);">It's a Match!</h2>
     <div class="match-modal-name" id="match-modal-name"></div>
-    <p class="text-muted">You and your partner both love this name!</p>
-    <div class="mt-3 d-flex justify-content-center" style="gap:0.75rem; flex-wrap:wrap;">
-      <button id="match-modal-keep-swiping" class="btn btn-primary">Keep Swiping</button>
-      <a href="/matches" class="btn btn-outline-secondary">See All Matches</a>
+    <p style="color:var(--muted); font-weight:600;">You and your partner both love this name!</p>
+    <div class="d-flex justify-content-center mt-3" style="gap:0.75rem; flex-wrap:wrap;">
+      <button id="match-modal-keep-swiping" class="btn-pink btn">Keep Swiping</button>
+      <a href="/matches" class="btn-outline-pink btn">See All Matches</a>
     </div>
-    <button id="match-modal-close" class="btn btn-link text-muted mt-2" style="font-size:0.85rem;">Close</button>
+    <button id="match-modal-close" class="btn btn-link mt-3"
+      style="color:var(--muted); font-size:0.85rem; font-weight:600;">Close</button>
   </div>
 </div>
 {% endblock %}

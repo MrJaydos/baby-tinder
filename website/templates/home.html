@@ -1,65 +1,58 @@
 {% extends "base.html" %}
 {% block title %}Home{% endblock %}
 {% block content %}
-<div class="row mt-2">
-  <div class="col-12">
-    <h2>Hey {{ user.first_name }}! &#128149;</h2>
-  </div>
-</div>
 
-{% if not user.couple_id %}
-<div class="alert alert-info mt-2">
-  <strong>You're not in a couple yet.</strong>
-  Create a couple or join your partner's couple to start matching names.
-  <a href="/couple" class="btn btn-sm btn-primary ml-2">Set up couple</a>
-</div>
-{% else %}
-  {% if not partner %}
-  <div class="alert alert-warning mt-2">
-    Your partner hasn't joined yet. Share your couple code with them from
-    <a href="/account">Account</a>.
+<div class="mb-4">
+  <h2 class="page-header mb-1">Hey {{ user.first_name }}! &#128149;</h2>
+  {% if not user.couple_id %}
+  <div class="bt-card p-3 d-flex align-items-center justify-content-between flex-wrap" style="background:var(--pink-light);">
+    <span style="font-weight:700;color:var(--pink);">You're not in a couple yet &mdash; set one up to start matching!</span>
+    <a href="/couple" class="btn-pink btn btn-sm mt-2 mt-md-0">Set Up Couple</a>
+  </div>
+  {% elif not partner %}
+  <div class="bt-card p-3" style="background:#fff8e1;">
+    <span style="font-weight:700;color:#e67e22;">&#9888; Your partner hasn't joined yet.</span>
+    Share your couple code from <a href="/account">Account</a>.
   </div>
   {% else %}
-  <div class="alert alert-success mt-2">
-    Connected with <strong>{{ partner.first_name }}</strong> &#128149;
+  <div class="bt-card p-3 d-flex align-items-center" style="background:#f0fdf4;gap:0.5rem;">
+    <span style="font-size:1.4rem;">&#128149;</span>
+    <span style="font-weight:700;color:#1b5e20;">Connected with <strong>{{ partner.first_name }}</strong></span>
   </div>
   {% endif %}
-{% endif %}
+</div>
 
-<div class="row mt-3">
+<div class="row mb-4">
   <div class="col-sm-4 mb-3">
-    <div class="card stat-card h-100">
-      <div class="card-body text-center py-4">
-        <div style="font-size:2.5rem">&#128149;</div>
-        <h2 class="mt-2 font-weight-bold">{{ match_count }}</h2>
-        <p class="text-muted mb-3">Matches so far</p>
-        <a href="/matches" class="btn btn-outline-danger btn-sm">View matches</a>
-      </div>
+    <div class="stat-card">
+      <div class="stat-icon">&#128149;</div>
+      <div class="stat-count">{{ match_count }}</div>
+      <div class="stat-label">Matches so far</div>
+      <a href="/matches" class="btn-outline-pink btn btn-sm">View matches</a>
     </div>
   </div>
   <div class="col-sm-4 mb-3">
-    <div class="card stat-card h-100">
-      <div class="card-body text-center py-4">
-        <div style="font-size:2.5rem">&#128084;</div>
-        <h2 class="mt-2 font-weight-bold">{{ swipe_count }}</h2>
-        <p class="text-muted mb-3">Names you've swiped</p>
-        <a href="/tinder" class="btn btn-outline-primary btn-sm">Keep swiping</a>
-      </div>
+    <div class="stat-card">
+      <div class="stat-icon">&#10024;</div>
+      <div class="stat-count">{{ swipe_count }}</div>
+      <div class="stat-label">Names you've swiped</div>
+      <a href="/tinder" class="btn-pink btn btn-sm">Keep swiping</a>
     </div>
   </div>
   <div class="col-sm-4 mb-3">
-    <div class="card stat-card h-100">
-      <div class="card-body text-center py-4">
-        <div style="font-size:2.5rem">&#128106;</div>
-        <h2 class="mt-2 font-weight-bold">{{ '2' if partner else '1' }}/2</h2>
-        <p class="text-muted mb-3">Couple members</p>
-        <a href="/couple" class="btn btn-outline-secondary btn-sm">Couple settings</a>
-      </div>
+    <div class="stat-card">
+      <div class="stat-icon">&#128106;</div>
+      <div class="stat-count">{{ '2' if partner else '1' }}/2</div>
+      <div class="stat-label">Couple members</div>
+      <a href="/couple" class="btn-plum btn btn-sm">Couple settings</a>
     </div>
   </div>
 </div>
 
-<div class="text-center mt-4">
-  <a href="/tinder" class="btn btn-primary btn-lg px-5">Start Swiping &#128149;</a>
+<div class="text-center">
+  <a href="/tinder" class="btn-pink btn btn-lg px-5" style="font-size:1.1rem;">
+    Start Swiping &#128149;
+  </a>
 </div>
+
 {% endblock %}

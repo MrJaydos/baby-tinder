@@ -25,6 +25,9 @@ class User(db.Model, UserMixin):
     password = db.Column(db.String(150), nullable=False)
     couple_id = db.Column(db.Integer, db.ForeignKey('couple.id'), nullable=True)
     swipes = db.relationship('Swipe', backref='user', lazy=True)
+    pref_gender = db.Column(db.String(10), nullable=False, default='all')
+    pref_origin = db.Column(db.String(100), nullable=False, default='')
+    pref_style = db.Column(db.String(100), nullable=False, default='')
 
 
 class BabyName(db.Model):
