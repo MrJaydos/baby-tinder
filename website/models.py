@@ -45,6 +45,7 @@ class Swipe(db.Model):
     name_id = db.Column(db.Integer, db.ForeignKey('baby_name.id'), nullable=False)
     liked = db.Column(db.Boolean, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    baby_name = db.relationship('BabyName')
     __table_args__ = (db.UniqueConstraint('user_id', 'name_id'),)
 
 
