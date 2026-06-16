@@ -39,6 +39,7 @@ def create_app():
         db.create_all()
         _migrate_db()
         _auto_load_names(app)
+        _migrate_origins()
 
     login_manager = LoginManager()
     login_manager.login_view = 'auth.login'
@@ -68,6 +69,13 @@ def _migrate_db():
                 pass  # Column already exists
 
 
+def _normalize_origin(raw):
+    """'American - English' → 'American', 'Old English' stays 'Old English'."""
+    if not raw:
+        return raw
+    return raw.split(' - ')[0].strip()
+
+
 def _auto_load_names(app):
     from .models import BabyName
     if BabyName.query.count() > 0:
@@ -94,10 +102,11 @@ def _auto_load_names(app):
             continue
         raw_gender = (row['gender'] or '').strip().lower()
         gender = gender_map.get(raw_gender, 'N')
+        raw_origin = (row['origin'] or '').strip()
         db.session.add(BabyName(
             name=name_val,
             gender=gender,
-            origin=(row['origin'] or '').strip() or None,
+            origin=_normalize_origin(raw_origin) or None,
             meaning=(row['meaning'] or '').strip() or None,
             style=(row['style'] or '').strip() or None,
         ))
@@ -106,3 +115,25 @@ def _auto_load_names(app):
 
     db.session.commit()
     print(f'Auto-loaded {count} baby names from names.db')
+
+
+def _migrate_origins():
+    """Condense compound origins already in the DB — e.g. 'American - English' → 'American'."""
+    from .models import BabyName, User
+    updated = 0
+
+    for n in BabyName.query.filter(BabyName.origin.like('% - %')).all():
+        condensed = _normalize_origin(n.origin)
+        if condensed != n.origin:
+            n.origin = condensed
+            updated += 1
+
+    for u in User.query.filter(User.pref_origin.like('% - %')).all():
+        condensed = _normalize_origin(u.pref_origin)
+        if condensed != u.pref_origin:
+            u.pref_origin = condensed
+            updated += 1
+
+    if updated:
+        db.session.commit()
+        print(f'Normalized {updated} origin values')
