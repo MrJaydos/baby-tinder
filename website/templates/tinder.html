@@ -4,7 +4,10 @@
 <div class="row justify-content-center">
   <div class="col-12 col-sm-10 col-md-7 col-lg-5">
 
-    <div id="card-container">
+    <div id="card-container"
+      data-gender="{{ user.pref_gender or 'all' }}"
+      data-origin="{{ user.pref_origin or '' }}"
+      data-style="{{ user.pref_style or '' }}">
       <!-- Name card — starts invisible (opacity:0 via CSS), JS reveals it -->
       <div id="name-card" class="name-card">
         <div class="card-name" id="card-name">&nbsp;</div>

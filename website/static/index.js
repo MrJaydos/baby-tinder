@@ -3,16 +3,17 @@ const GENDER_EMOJI = { M: '♂', F: '♀', N: '⚥' };
 const ANIM_MS = 250;
 
 let currentName = null;
-let prefetched  = null; // next name fetched in background; null = not ready
+let prefetched  = null; // next name fetched in background; null = not ready yet
 let isSwiping   = false;
 
 async function _fetchName() {
-  const res = await fetch('/api/next-name');
+  const res = await fetch('/api/next-name', { cache: 'no-store' });
   return res.json();
 }
 
+// Fire-and-forget — safe to call only AFTER the current swipe is committed,
+// so the server's unswiped pool is up-to-date before we sample from it.
 function _prefetchNext() {
-  // Fire-and-forget — result stored whenever it arrives
   _fetchName().then(data => { prefetched = data; }).catch(() => {});
 }
 
@@ -30,11 +31,6 @@ async function loadNextName() {
 
   currentName = data;
   renderCard(data);
-
-  // Start fetching the card after this one while the user is reading.
-  // The current card isn't swiped yet so the pool still contains it —
-  // we check for that collision in swipe() and discard if needed.
-  _prefetchNext();
 }
 
 function renderCard(data) {
@@ -57,10 +53,8 @@ function renderCard(data) {
 
   document.getElementById('card-meaning').textContent = data.meaning || 'No meaning available.';
 
-  // Remove old state, trigger entrance
   card.classList.remove('card-exit-right', 'card-exit-left', 'card-enter');
-  // Force reflow so removing + re-adding card-enter restarts the animation
-  void card.offsetWidth;
+  void card.offsetWidth; // force reflow so animation restarts cleanly
   card.classList.add('card-enter');
 }
 
@@ -73,23 +67,33 @@ async function swipe(liked) {
   card.classList.remove('card-enter');
   card.classList.add(liked ? 'card-exit-right' : 'card-exit-left');
 
-  // Run exit animation and swipe POST in parallel — saves a full round-trip
-  const [swipeRes] = await Promise.all([
-    fetch('/api/swipe', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name_id: nameId, liked }),
-    }),
-    new Promise(r => setTimeout(r, ANIM_MS)),
-  ]);
+  // Run exit animation and swipe POST in parallel to save a round-trip
+  let swipeRes;
+  try {
+    [swipeRes] = await Promise.all([
+      fetch('/api/swipe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name_id: nameId, liked }),
+      }),
+      new Promise(r => setTimeout(r, ANIM_MS)),
+    ]);
+  } catch (e) {
+    isSwiping = false;
+    loadNextName();
+    return;
+  }
 
   const swipeData = await swipeRes.json();
   isSwiping = false;
 
-  // Discard prefetch if it somehow returned the card we just swiped
+  // Swipe is now committed — safe to prefetch from the updated pool.
+  // Discard any stale prefetch that arrived before this swipe was recorded
+  // (rare, but possible if user swiped very fast).
   if (prefetched && !prefetched.done && prefetched.id === nameId) {
     prefetched = null;
   }
+  _prefetchNext();
 
   if (swipeData.matched) {
     showMatchModal(swipeData.matched_name);
@@ -112,20 +116,42 @@ function closeMatchModal() {
 
 function showDone() {
   const container = document.getElementById('card-container');
+  if (!container) return;
+
+  // Read active filters from data attributes set by the template
+  const gender = container.dataset.gender || 'all';
+  const origin = container.dataset.origin || '';
+  const style  = container.dataset.style  || '';
+
+  const parts = [];
+  if (gender === 'M') parts.push('Boy names');
+  else if (gender === 'F') parts.push('Girl names');
+  else if (gender === 'N') parts.push('Neutral names');
+  if (origin) parts.push(origin + ' origin');
+  if (style)  parts.push(style  + ' style');
+
+  const filterLine = parts.length
+    ? `You've seen every <strong>${parts.join(', ')}</strong> name.`
+    : "You've seen every name in your current preferences.";
+
   container.innerHTML = `
     <div class="done-message">
-      <div class="done-icon">&#127881;</div>
-      <h3>You've seen all the names!</h3>
-      <p style="color:var(--muted);font-weight:600;">
-        Update your <a href="/account">preferences</a> to see more,
+      <div class="done-icon">&#10024;</div>
+      <h3>All done!</h3>
+      <p style="color:var(--muted);font-weight:600;line-height:1.6;">
+        ${filterLine}<br>
+        <a href="/account">Change your preferences</a> to explore more,
         or check your <a href="/matches">matches</a>.
       </p>
     </div>`;
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   if (document.getElementById('card-container')) {
-    loadNextName();
+    // Await the first card so we can immediately kick off a prefetch
+    // while the user reads the card — all subsequent swipes will be instant.
+    await loadNextName();
+    _prefetchNext();
   }
 
   document.getElementById('like-btn')?.addEventListener('click', () => swipe(true));

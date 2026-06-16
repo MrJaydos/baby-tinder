@@ -88,18 +88,22 @@ def next_name():
         query = query.filter(BabyName.style == style)
 
     name = query.order_by(db.func.random()).first()
-    if not name:
-        return jsonify({'done': True})
 
-    return jsonify({
-        'done': False,
-        'id': name.id,
-        'name': name.name,
-        'gender': name.gender,
-        'origin': name.origin or '',
-        'meaning': name.meaning or '',
-        'style': name.style or '',
-    })
+    from flask import make_response
+    if not name:
+        resp = make_response(jsonify({'done': True}))
+    else:
+        resp = make_response(jsonify({
+            'done': False,
+            'id': name.id,
+            'name': name.name,
+            'gender': name.gender,
+            'origin': name.origin or '',
+            'meaning': name.meaning or '',
+            'style': name.style or '',
+        }))
+    resp.headers['Cache-Control'] = 'no-store'
+    return resp
 
 
 @views.route('/api/swipe', methods=['POST'])
