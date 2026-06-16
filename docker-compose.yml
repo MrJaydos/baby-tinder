@@ -1,0 +1,14 @@
+services:
+  web:
+    build: .
+    ports:
+      - "5000:5000"
+    volumes:
+      - db_data:/data
+    environment:
+      - SECRET_KEY=change-this-to-a-long-random-string
+      - DATABASE_URL=sqlite:////data/database.db
+    restart: unless-stopped
+
+volumes:
+  db_data:

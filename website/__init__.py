@@ -1,4 +1,83 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
-from os import path
 from flask_login import LoginManager
+from os import path
+import os
+
+db = SQLAlchemy()
+
+
+def create_app():
+    app = Flask(__name__)
+    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
+
+    database_url = os.environ.get('DATABASE_URL', f'sqlite:///{path.join(app.instance_path, "database.db")}')
+    # Heroku/Coolify may give postgres:// which SQLAlchemy requires as postgresql://
+    if database_url.startswith('postgres://'):
+        database_url = database_url.replace('postgres://', 'postgresql://', 1)
+    app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+    db.init_app(app)
+
+    from .views import views
+    from .auth import auth
+    app.register_blueprint(views, url_prefix='/')
+    app.register_blueprint(auth, url_prefix='/')
+
+    from .models import User
+
+    os.makedirs(app.instance_path, exist_ok=True)
+    with app.app_context():
+        db.create_all()
+        _auto_load_names(app)
+
+    login_manager = LoginManager()
+    login_manager.login_view = 'auth.login'
+    login_manager.init_app(app)
+
+    @login_manager.user_loader
+    def load_user(user_id):
+        return User.query.get(int(user_id))
+
+    return app
+
+
+def _auto_load_names(app):
+    from .models import BabyName
+    if BabyName.query.count() > 0:
+        return
+
+    src_path = path.join(app.root_path, '..', 'names.db')
+    if not path.exists(src_path):
+        return
+
+    import sqlite3
+    gender_map = {
+        'boy': 'M', 'male': 'M', 'm': 'M',
+        'girl': 'F', 'female': 'F', 'f': 'F',
+        'neutral': 'N', 'unisex': 'N', 'n': 'N', 'u': 'N',
+    }
+    count = 0
+    conn = sqlite3.connect(src_path)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+    cur.execute('SELECT name, gender, origin, meaning, style FROM names')
+    for row in cur.fetchall():
+        name_val = (row['name'] or '').strip()
+        if not name_val:
+            continue
+        raw_gender = (row['gender'] or '').strip().lower()
+        gender = gender_map.get(raw_gender, 'N')
+        db.session.add(BabyName(
+            name=name_val,
+            gender=gender,
+            origin=(row['origin'] or '').strip() or None,
+            meaning=(row['meaning'] or '').strip() or None,
+            style=(row['style'] or '').strip() or None,
+        ))
+        count += 1
+    conn.close()
+
+    db.session.commit()
+    print(f'Auto-loaded {count} baby names from names.db')

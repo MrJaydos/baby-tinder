@@ -1,6 +1,65 @@
 {% extends "base.html" %}
-{% block title %} Home {% endblock %}
+{% block title %}Home{% endblock %}
 {% block content %}
-<h1>Home</h1>
-<p>This is going to be the homepage that will explain what baby tinder is and that it won't just be a tinder for babies but more of a tinder for expecting parents to help them choose names for their future children.</p>
+<div class="row mt-2">
+  <div class="col-12">
+    <h2>Hey {{ user.first_name }}! &#128149;</h2>
+  </div>
+</div>
+
+{% if not user.couple_id %}
+<div class="alert alert-info mt-2">
+  <strong>You're not in a couple yet.</strong>
+  Create a couple or join your partner's couple to start matching names.
+  <a href="/couple" class="btn btn-sm btn-primary ml-2">Set up couple</a>
+</div>
+{% else %}
+  {% if not partner %}
+  <div class="alert alert-warning mt-2">
+    Your partner hasn't joined yet. Share your couple code with them from
+    <a href="/account">Account</a>.
+  </div>
+  {% else %}
+  <div class="alert alert-success mt-2">
+    Connected with <strong>{{ partner.first_name }}</strong> &#128149;
+  </div>
+  {% endif %}
+{% endif %}
+
+<div class="row mt-3">
+  <div class="col-sm-4 mb-3">
+    <div class="card stat-card h-100">
+      <div class="card-body text-center py-4">
+        <div style="font-size:2.5rem">&#128149;</div>
+        <h2 class="mt-2 font-weight-bold">{{ match_count }}</h2>
+        <p class="text-muted mb-3">Matches so far</p>
+        <a href="/matches" class="btn btn-outline-danger btn-sm">View matches</a>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-4 mb-3">
+    <div class="card stat-card h-100">
+      <div class="card-body text-center py-4">
+        <div style="font-size:2.5rem">&#128084;</div>
+        <h2 class="mt-2 font-weight-bold">{{ swipe_count }}</h2>
+        <p class="text-muted mb-3">Names you've swiped</p>
+        <a href="/tinder" class="btn btn-outline-primary btn-sm">Keep swiping</a>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-4 mb-3">
+    <div class="card stat-card h-100">
+      <div class="card-body text-center py-4">
+        <div style="font-size:2.5rem">&#128106;</div>
+        <h2 class="mt-2 font-weight-bold">{{ '2' if partner else '1' }}/2</h2>
+        <p class="text-muted mb-3">Couple members</p>
+        <a href="/couple" class="btn btn-outline-secondary btn-sm">Couple settings</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="text-center mt-4">
+  <a href="/tinder" class="btn btn-primary btn-lg px-5">Start Swiping &#128149;</a>
+</div>
 {% endblock %}

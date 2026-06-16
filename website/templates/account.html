@@ -1,6 +1,43 @@
 {% extends "base.html" %}
-{% block title %} Tinder {% endblock %}
+{% block title %}Account{% endblock %}
 {% block content %}
-<h1>Baby Tinder</h1>
-<p>This is where the magic is going to happen.</p>
+<div class="row justify-content-center">
+  <div class="col-md-6">
+    <h2 class="mb-4">&#128100; Account</h2>
+
+    <div class="card mb-4" style="border-radius:16px; border:none; box-shadow:0 4px 16px rgba(0,0,0,0.08);">
+      <div class="card-body py-4">
+        <h5 class="font-weight-bold mb-3">Profile</h5>
+        <p class="mb-1"><span class="text-muted">Name:</span> <strong>{{ user.first_name }}</strong></p>
+        <p class="mb-0"><span class="text-muted">Email:</span> <strong>{{ user.email }}</strong></p>
+      </div>
+    </div>
+
+    <div class="card mb-4" style="border-radius:16px; border:none; box-shadow:0 4px 16px rgba(0,0,0,0.08);">
+      <div class="card-body py-4">
+        <h5 class="font-weight-bold mb-3">&#128106; Couple</h5>
+        {% if user.couple_id %}
+          <p class="mb-1">
+            <span class="text-muted">Your code:</span>
+            <strong class="text-primary" style="letter-spacing:0.2rem;">{{ user.couple.code }}</strong>
+          </p>
+          {% if partner %}
+          <p class="mb-2">
+            <span class="text-muted">Partner:</span>
+            <strong>{{ partner.first_name }}</strong> ({{ partner.email }})
+          </p>
+          {% else %}
+          <p class="mb-2 text-warning">Partner not joined yet &mdash; share your code above!</p>
+          {% endif %}
+          <a href="/couple" class="btn btn-outline-secondary btn-sm">Couple Settings</a>
+        {% else %}
+          <p class="text-muted mb-2">You're not in a couple yet.</p>
+          <a href="/couple" class="btn btn-primary btn-sm">Set Up Couple</a>
+        {% endif %}
+      </div>
+    </div>
+
+    <a href="/logout" class="btn btn-outline-danger">Logout</a>
+  </div>
+</div>
 {% endblock %}

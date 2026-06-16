@@ -1,6 +1,42 @@
 {% extends "base.html" %}
-{% block title %} Tinder {% endblock %}
+{% block title %}Matches{% endblock %}
 {% block content %}
-<h1>Baby Tinder</h1>
-<p>This is where the magic is going to happen.</p>
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <h2 class="mb-0">&#128149; Your Matches</h2>
+  <a href="/tinder" class="btn btn-primary btn-sm">Keep Swiping</a>
+</div>
+
+{% if matches %}
+<p class="text-muted">You and your partner both love these {{ matches|length }} name{{ 's' if matches|length != 1 }}!</p>
+<div class="row">
+  {% for match in matches %}
+  <div class="col-sm-6 col-md-4 mb-4">
+    <div class="card h-100" style="border-radius:16px; border:none; box-shadow:0 4px 16px rgba(0,0,0,0.08);">
+      <div class="card-body text-center py-4">
+        <h3 class="font-weight-bold mb-1">{{ match.baby_name.name }}</h3>
+        <span class="gender-badge gender-{{ match.baby_name.gender.lower() }} mb-2 d-inline-block">
+          {% if match.baby_name.gender == 'M' %}&#9794; Boy
+          {% elif match.baby_name.gender == 'F' %}&#9792; Girl
+          {% else %}&#9893; Neutral{% endif %}
+        </span>
+        <div>
+          {% if match.baby_name.origin %}<span class="origin-tag">{{ match.baby_name.origin }}</span>{% endif %}
+          {% if match.baby_name.style %}<span class="origin-tag ml-1" style="background:#d4edda;color:#155724;">{{ match.baby_name.style }}</span>{% endif %}
+        </div>
+        {% if match.baby_name.meaning %}
+        <p class="card-meaning mt-2 mb-0">{{ match.baby_name.meaning }}</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="text-center py-5">
+  <div style="font-size:4rem">&#128149;</div>
+  <h4 class="mt-3">No matches yet</h4>
+  <p class="text-muted">Start swiping &mdash; a match happens when both of you like the same name.</p>
+  <a href="/tinder" class="btn btn-primary mt-2">Start Swiping</a>
+</div>
+{% endif %}
 {% endblock %}
