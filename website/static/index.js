@@ -68,6 +68,9 @@ function renderCard(data) {
   if (hintLike) hintLike.style.opacity = '0';
   if (hintNope) hintNope.style.opacity = '0';
 
+  const partnerHint = document.getElementById('partner-liked-hint');
+  if (partnerHint) partnerHint.style.display = data.partner_liked ? '' : 'none';
+
   // Clear all inline drag styles then play enter animation from clean state
   card.style.cssText = '';
   card.classList.remove('card-exit-right', 'card-exit-left', 'card-enter', 'is-dragging');

@@ -3,6 +3,7 @@ from flask_login import login_required, current_user
 from . import db
 from .models import BabyName, Swipe, Match, Couple, User
 import os
+import random
 
 views = Blueprint('views', __name__)
 
@@ -93,7 +94,25 @@ def next_name():
     if style and style != 'all':
         query = query.filter(BabyName.style == style)
 
-    name = query.order_by(db.func.random()).first()
+    name = None
+    partner_liked = False
+
+    # ~40% of the time surface a name the partner has already liked
+    if current_user.couple_id and random.random() < 0.40:
+        partner = User.query.filter(
+            User.couple_id == current_user.couple_id,
+            User.id != current_user.id
+        ).first()
+        if partner:
+            partner_liked_ids = db.session.query(Swipe.name_id).filter_by(
+                user_id=partner.id, liked=True
+            ).subquery()
+            name = query.filter(BabyName.id.in_(partner_liked_ids)).order_by(db.func.random()).first()
+            if name:
+                partner_liked = True
+
+    if not name:
+        name = query.order_by(db.func.random()).first()
 
     from flask import make_response
     if not name:
@@ -107,6 +126,7 @@ def next_name():
             'origin': name.origin or '',
             'meaning': name.meaning or '',
             'style': name.style or '',
+            'partner_liked': partner_liked,
         }))
     resp.headers['Cache-Control'] = 'no-store'
     return resp
