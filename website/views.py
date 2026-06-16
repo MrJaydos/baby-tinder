@@ -4,6 +4,7 @@ from . import db
 from .models import BabyName, Swipe, Match, Couple, User
 import os
 import random
+import re
 
 views = Blueprint('views', __name__)
 
@@ -213,6 +214,68 @@ def account():
 
     return render_template('account.html', user=current_user, partner=partner,
                            origins=origins, styles=styles)
+
+
+@views.route('/import-names', methods=['POST'])
+@login_required
+def import_names():
+    raw = request.form.get('names', '')
+    name_list = [n.strip() for n in re.split(r'[\n,]+', raw) if n.strip()]
+
+    if not name_list:
+        flash('No names entered.', category='error')
+        return redirect(url_for('views.account'))
+
+    partner = None
+    if current_user.couple_id:
+        partner = User.query.filter(
+            User.couple_id == current_user.couple_id,
+            User.id != current_user.id
+        ).first()
+
+    liked = 0
+    already_done = 0
+    new_matches = 0
+    not_found = []
+
+    for name_str in name_list:
+        baby = BabyName.query.filter(
+            db.func.lower(BabyName.name) == name_str.lower()
+        ).first()
+
+        if not baby:
+            not_found.append(name_str)
+            continue
+
+        existing = Swipe.query.filter_by(user_id=current_user.id, name_id=baby.id).first()
+        if existing:
+            already_done += 1
+            continue
+
+        db.session.add(Swipe(user_id=current_user.id, name_id=baby.id, liked=True))
+        liked += 1
+
+        if partner:
+            partner_liked = Swipe.query.filter_by(
+                user_id=partner.id, name_id=baby.id, liked=True
+            ).first()
+            if partner_liked and not Match.query.filter_by(
+                couple_id=current_user.couple_id, name_id=baby.id
+            ).first():
+                db.session.add(Match(couple_id=current_user.couple_id, name_id=baby.id))
+                new_matches += 1
+
+    db.session.commit()
+
+    parts = []
+    if liked:       parts.append(f'{liked} name{"s" if liked != 1 else ""} liked')
+    if new_matches: parts.append(f'{new_matches} new match{"es" if new_matches != 1 else ""}! &#128149;')
+    if already_done: parts.append(f'{already_done} already swiped')
+    if not_found:   parts.append(f'{len(not_found)} not recognised: {", ".join(not_found[:8])}{"…" if len(not_found) > 8 else ""}')
+
+    msg = ' &mdash; '.join(parts) if parts else 'Nothing imported.'
+    flash(msg, category='success' if liked or new_matches else 'error')
+    return redirect(url_for('views.account'))
 
 
 # ── Image generation ──────────────────────────────────────────────────────────
