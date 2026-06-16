@@ -10,6 +10,12 @@
       data-style="{{ user.pref_style or '' }}">
       <!-- Name card — starts invisible (opacity:0 via CSS), JS reveals it -->
       <div id="name-card" class="name-card">
+        <!-- Portrait: placeholder shown until AI image fades in -->
+        <div class="card-img-wrap">
+          <div id="card-img-placeholder" class="card-img-placeholder">&#128118;</div>
+          <img id="card-img" class="card-baby-img" alt="" src="" />
+        </div>
+
         <div class="card-name" id="card-name">&nbsp;</div>
         <div class="mb-3">
           <span id="card-gender" class="gender-badge"></span>

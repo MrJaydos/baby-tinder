@@ -53,6 +53,20 @@ function renderCard(data) {
 
   document.getElementById('card-meaning').textContent = data.meaning || 'No meaning available.';
 
+  // Reset portrait: show placeholder, hide old image while new one loads
+  const imgEl = document.getElementById('card-img');
+  const placeholder = document.getElementById('card-img-placeholder');
+  if (imgEl && placeholder) {
+    imgEl.style.opacity = '0';
+    placeholder.style.opacity = '1';
+    imgEl.onload = () => {
+      placeholder.style.opacity = '0';
+      imgEl.style.opacity = '1';
+    };
+    imgEl.onerror = () => { /* placeholder stays visible */ };
+    imgEl.src = `/api/name-image/${data.id}`;
+  }
+
   card.classList.remove('card-exit-right', 'card-exit-left', 'card-enter');
   void card.offsetWidth; // force reflow so animation restarts cleanly
   card.classList.add('card-enter');

@@ -7,10 +7,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-RUN mkdir -p /data
+RUN mkdir -p /data/images
 
 ENV FLASK_APP=main.py
 ENV DATABASE_URL=sqlite:////data/database.db
+ENV IMAGE_DIR=/data/images
 
 EXPOSE 5000
 

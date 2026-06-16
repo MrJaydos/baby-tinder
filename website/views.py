@@ -1,7 +1,8 @@
-from flask import Blueprint, render_template, request, flash, jsonify, redirect, url_for
+from flask import Blueprint, render_template, request, flash, jsonify, redirect, url_for, current_app, send_file
 from flask_login import login_required, current_user
 from . import db
 from .models import BabyName, Swipe, Match, Couple, User
+import os
 
 views = Blueprint('views', __name__)
 
@@ -187,3 +188,66 @@ def account():
 
     return render_template('account.html', user=current_user, partner=partner,
                            origins=origins, styles=styles)
+
+
+# ── Image generation ──────────────────────────────────────────────────────────
+
+@views.route('/api/name-image/<int:name_id>')
+@login_required
+def name_image(name_id):
+    img_dir = current_app.config['IMAGE_DIR']
+    os.makedirs(img_dir, exist_ok=True)
+    img_path = os.path.join(img_dir, f'{name_id}.jpg')
+
+    if os.path.exists(img_path):
+        return send_file(img_path, mimetype='image/jpeg')
+
+    name = BabyName.query.get_or_404(name_id)
+    prompt = _build_prompt(name)
+
+    try:
+        local_url = current_app.config.get('IMAGE_API_URL', '')
+        img_bytes = _generate_local(local_url, prompt) if local_url else _generate_pollinations(prompt, seed=name_id)
+        if img_bytes:
+            with open(img_path, 'wb') as f:
+                f.write(img_bytes)
+            return send_file(img_path, mimetype='image/jpeg')
+    except Exception as e:
+        current_app.logger.warning(f'Image generation failed for name {name_id}: {e}')
+
+    return '', 404
+
+
+def _build_prompt(name):
+    gender_word = {'M': 'baby boy', 'F': 'baby girl'}.get(name.gender, 'baby')
+    origin_part = f', {name.origin} heritage' if name.origin else ''
+    return (
+        f'adorable {gender_word}{origin_part}, soft watercolour storybook '
+        f'illustration, cute toddler portrait, white background, '
+        f'pastel colours, no text, no watermark, high quality'
+    )
+
+
+def _generate_pollinations(prompt, seed=42):
+    import requests as req
+    from urllib.parse import quote
+    url = (
+        f'https://image.pollinations.ai/prompt/{quote(prompt)}'
+        f'?width=320&height=320&nologo=true&seed={seed}&model=flux'
+    )
+    resp = req.get(url, timeout=90)
+    resp.raise_for_status()
+    return resp.content
+
+
+def _generate_local(base_url, prompt):
+    """Call a local AUTOMATIC1111 /sdapi/v1/txt2img endpoint."""
+    import requests as req, base64
+    resp = req.post(f'{base_url}/sdapi/v1/txt2img', json={
+        'prompt': prompt,
+        'negative_prompt': 'realistic photo, text, watermark, ugly, deformed, nsfw',
+        'width': 320, 'height': 320,
+        'steps': 20, 'cfg_scale': 7,
+    }, timeout=300)
+    resp.raise_for_status()
+    return base64.b64decode(resp.json()['images'][0])

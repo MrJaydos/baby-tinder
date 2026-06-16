@@ -18,6 +18,13 @@ def create_app():
     app.config['SQLALCHEMY_DATABASE_URI'] = database_url
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
+    # Image generation — lazily cached to disk
+    app.config['IMAGE_DIR'] = os.environ.get(
+        'IMAGE_DIR', os.path.join(app.instance_path, 'images'))
+    # Optional: point at a local AUTOMATIC1111 instance for fully offline generation
+    # e.g. IMAGE_API_URL=http://localhost:7860
+    app.config['IMAGE_API_URL'] = os.environ.get('IMAGE_API_URL', '')
+
     db.init_app(app)
 
     from .views import views
