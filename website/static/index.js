@@ -22,13 +22,17 @@ function _prefetchNext() {
 
 async function loadNextName() {
   let data;
-  if (prefetched !== null) {
-    data = prefetched;
-    prefetched = null;
-  } else {
-    data = await _fetchName();
+  try {
+    if (prefetched !== null) {
+      data = prefetched;
+      prefetched = null;
+    } else {
+      data = await _fetchName();
+    }
+  } catch (_) {
+    try { data = await _fetchName(); } catch (_) { return; }
   }
-  if (data.done) { showDone(); return; }
+  if (!data || data.done) { showDone(); return; }
   currentName = data;
   renderCard(data);
 }
@@ -86,16 +90,15 @@ async function swipe(liked, dragAnimated = false) {
   const card = document.getElementById('name-card');
 
   if (!dragAnimated) {
-    // Button / keyboard path — use CSS keyframe animation
     card.style.cssText = '';
     card.classList.remove('card-enter');
     card.classList.add(liked ? 'card-exit-right' : 'card-exit-left');
   }
-  // dragAnimated path: card is already flying via inline transition set in onDragEnd
 
-  let swipeRes;
+  let matched = false, matchedName = null;
+
   try {
-    [swipeRes] = await Promise.all([
+    const [res] = await Promise.all([
       fetch('/api/swipe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -103,27 +106,25 @@ async function swipe(liked, dragAnimated = false) {
       }),
       new Promise(r => setTimeout(r, ANIM_MS)),
     ]);
-  } catch (e) {
+    const data = await res.json();
+    matched = data.matched || false;
+    matchedName = data.matched_name || null;
+    const swipesEl = document.getElementById('stat-swipes');
+    if (swipesEl) swipesEl.textContent = String((parseInt(swipesEl.textContent) || 0) + 1);
+    if (matched) {
+      const matchesEl = document.getElementById('stat-matches');
+      if (matchesEl) matchesEl.textContent = String((parseInt(matchesEl.textContent) || 0) + 1);
+    }
+  } catch (_) {
+    // Network or parse error — still advance so the UI never gets stuck
+  } finally {
     isSwiping = false;
-    loadNextName();
-    return;
   }
-
-  const swipeData = await swipeRes.json();
-  isSwiping = false;
 
   if (prefetched && !prefetched.done && prefetched.id === nameId) prefetched = null;
   _prefetchNext();
 
-  // Update live stat chips
-  const swipesEl = document.getElementById('stat-swipes');
-  if (swipesEl) swipesEl.textContent = String((parseInt(swipesEl.textContent) || 0) + 1);
-  if (swipeData.matched) {
-    const matchesEl = document.getElementById('stat-matches');
-    if (matchesEl) matchesEl.textContent = String((parseInt(matchesEl.textContent) || 0) + 1);
-  }
-
-  if (swipeData.matched) showMatchModal(swipeData.matched_name);
+  if (matched) showMatchModal(matchedName);
   else loadNextName();
 }
 

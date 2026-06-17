@@ -166,7 +166,8 @@ def swipe():
                 db.session.add(Match(couple_id=current_user.couple_id, name_id=name_id))
                 db.session.commit()
                 matched = True
-                matched_name = BabyName.query.get(name_id).name
+                baby = BabyName.query.get(name_id)
+                matched_name = baby.name if baby else ''
 
     return jsonify({'success': True, 'matched': matched, 'matched_name': matched_name})
 
