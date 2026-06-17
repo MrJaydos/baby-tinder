@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, request, flash, jsonify, redirect, url_for, current_app, send_file
 from flask_login import login_required, current_user
+from sqlalchemy import or_
 from . import db
 from .models import BabyName, Swipe, Match, Couple, User
 import os
@@ -97,9 +98,10 @@ def next_name():
 
     name = None
     partner_liked = False
+    roll = random.random()
 
-    # ~40% of the time surface a name the partner has already liked
-    if current_user.couple_id and random.random() < 0.40:
+    # ~35%: surface a name the partner has already liked
+    if not name and current_user.couple_id and roll < 0.35:
         partner = User.query.filter(
             User.couple_id == current_user.couple_id,
             User.id != current_user.id
@@ -112,6 +114,33 @@ def next_name():
             if name:
                 partner_liked = True
 
+    # ~45%: bias towards origins/styles the user already likes
+    if not name and roll < 0.80:
+        top_origins = [r[0] for r in
+            db.session.query(BabyName.origin)
+            .join(Swipe, Swipe.name_id == BabyName.id)
+            .filter(Swipe.user_id == current_user.id, Swipe.liked == True,
+                    BabyName.origin.isnot(None), BabyName.origin != '')
+            .group_by(BabyName.origin)
+            .order_by(db.func.count(BabyName.origin).desc())
+            .limit(3).all()]
+        top_styles = [r[0] for r in
+            db.session.query(BabyName.style)
+            .join(Swipe, Swipe.name_id == BabyName.id)
+            .filter(Swipe.user_id == current_user.id, Swipe.liked == True,
+                    BabyName.style.isnot(None), BabyName.style != '')
+            .group_by(BabyName.style)
+            .order_by(db.func.count(BabyName.style).desc())
+            .limit(3).all()]
+        if top_origins or top_styles:
+            conditions = []
+            if top_origins:
+                conditions.append(BabyName.origin.in_(top_origins))
+            if top_styles:
+                conditions.append(BabyName.style.in_(top_styles))
+            name = query.filter(or_(*conditions)).order_by(db.func.random()).first()
+
+    # ~20% + fallback: purely random for discovery
     if not name:
         name = query.order_by(db.func.random()).first()
 
