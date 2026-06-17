@@ -15,13 +15,26 @@ _ORIGIN_LOOKUP = {
     'anglo-saxon':        'English',
     'anglo saxon':        'English',
     'british':            'English',
+    'anglo-norman':       'English',
+    'early modern english': 'English',
     'old french':         'French',
     'middle french':      'French',
     'old provençal':      'French',
+    'norman':             'French',
+    'norman french':      'French',
+    'occitan':            'French',
     'old german':         'German',
     'old high german':    'German',
     'middle high german': 'German',
     'germanic':           'German',
+    'low german':         'German',
+    'middle low german':  'German',
+    'old low german':     'German',
+    'old saxon':          'German',
+    'frankish':           'German',
+    'swiss german':       'German',
+    'bavarian':           'German',
+    'austrian':           'German',
     'old norse':          'Scandinavian',
     'norse':              'Scandinavian',
     'swedish':            'Scandinavian',
@@ -39,6 +52,11 @@ _ORIGIN_LOOKUP = {
     'breton':             'Celtic',
     'ancient greek':      'Greek',
     'greek mythology':    'Greek',
+    'modern greek':       'Greek',
+    'byzantine':          'Greek',
+    'byzantine greek':    'Greek',
+    'hellenistic':        'Greek',
+    'hellenic':           'Greek',
     # South Asian → Indian
     'hindi':              'Indian',
     'hindu':              'Indian',
@@ -82,6 +100,24 @@ _ORIGIN_LOOKUP = {
     'latvian':            'Slavic',
     'romanian':           'Slavic',
     'east slavic':        'Slavic',
+    # Arabic
+    'classical arabic':   'Arabic',
+    'modern arabic':      'Arabic',
+    'arabian':            'Arabic',
+    'quranic':            'Arabic',
+    'koranic':            'Arabic',
+    'islamic':            'Arabic',
+    'muslim':             'Arabic',
+    # Biblical → the underlying language
+    'biblical':           'Hebrew',
+    'biblical hebrew':    'Hebrew',
+    'biblical greek':     'Greek',
+    'biblical aramaic':   'Hebrew',
+    'old testament':      'Hebrew',
+    'new testament':      'Greek',
+    'hebrew (biblical)':  'Hebrew',
+    # Fusion → Combination
+    'fusion':             'Combination',
     # Middle Eastern → Persian (for name purposes)
     'iranian':            'Persian',
     'afghan':             'Persian',
@@ -113,8 +149,8 @@ _ORIGIN_LOOKUP = {
     'anglo':              '',
 }
 
-# Prefixes to strip (e.g. "Old Welsh" → "Welsh", "Middle Persian" → "Persian")
-_STRIP_PREFIXES = ('Old ', 'Middle ', 'Ancient ', 'Early ', 'Modern ')
+# Prefixes to strip (e.g. "Old Welsh" → "Welsh", "Biblical Hebrew" → "Hebrew")
+_STRIP_PREFIXES = ('Old ', 'Middle ', 'Ancient ', 'Early ', 'Modern ', 'Biblical ')
 # Suffixes to strip (e.g. "Greek Mythology" → "Greek", "Scottish Gaelic" → "Scottish")
 _STRIP_SUFFIXES = (' Mythology', ' Gaelic', ' Language')
 
@@ -159,11 +195,17 @@ def _normalize_origin(raw):
         head = s.split(' - ')[0].strip()
         return _ORIGIN_LOOKUP.get(head.lower(), head)
 
-    # Catch-all: any remaining "X American" / "X African" variant → canonical
+    # Catch-all for remaining geographic/cultural variants
     if 'american' in low:
         return 'American'
     if 'african' in low:
         return 'African'
+    if 'fusion' in low:
+        return 'Combination'
+    if 'biblical' in low:
+        return 'Hebrew'
+    if 'arabic' in low:
+        return 'Arabic'
 
     # Too long → almost certainly garbled data, discard
     if len(s) > 35:
