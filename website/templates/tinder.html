@@ -7,7 +7,9 @@
     <div id="card-container"
       data-gender="{{ user.pref_gender or 'all' }}"
       data-origin="{{ user.pref_origin or '' }}"
-      data-style="{{ user.pref_style or '' }}">
+      data-style="{{ user.pref_style or '' }}"
+      data-total="{{ total_names }}"
+      data-remaining="{{ remaining_names }}">
       <!-- Name card — starts invisible (opacity:0 via CSS), JS reveals it -->
       <div id="name-card" class="name-card">
         <div class="swipe-hint swipe-hint-like" id="hint-like">LOVE IT &#9829;</div>
@@ -42,6 +44,13 @@
         </div>
       </div>
 
+      <!-- Undo button (shown briefly after each swipe) -->
+      <div id="undo-wrap" class="text-center mt-3" style="display:none;opacity:0;transition:opacity 0.2s;">
+        <button id="undo-btn" class="btn" style="color:var(--muted);font-weight:700;font-size:0.85rem;border:2px solid #e8e0ef;border-radius:999px;padding:0.35rem 1.2rem;">
+          <i class="fa fa-undo mr-1"></i> Undo
+        </button>
+      </div>
+
       <!-- Active filters hint -->
       {% set pref_gender = user.pref_gender or 'all' %}
       {% set pref_origin = user.pref_origin or '' %}
@@ -59,6 +68,19 @@
         Showing all names &mdash; <a href="/account">set preferences</a>
       </p>
       {% endif %}
+
+      <!-- Progress bar -->
+      {% set seen = total_names - remaining_names %}
+      {% set pct = (seen / total_names * 100) | round | int if total_names else 0 %}
+      <div class="mt-3">
+        <div class="d-flex justify-content-between mb-1" style="font-size:0.78rem;font-weight:700;color:var(--muted);">
+          <span><span id="progress-seen">{{ seen }}</span> of <span id="progress-total">{{ total_names }}</span> seen</span>
+          <span id="progress-pct">{{ pct }}%</span>
+        </div>
+        <div style="background:#f0e4f0;border-radius:999px;height:6px;overflow:hidden;">
+          <div id="progress-fill" style="background:var(--pink);height:100%;border-radius:999px;transition:width 0.3s;width:{{ pct }}%;"></div>
+        </div>
+      </div>
 
       <!-- Live stats dashboard -->
       <div class="d-flex justify-content-center mt-3" style="gap:0.75rem;">

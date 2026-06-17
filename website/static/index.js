@@ -10,6 +10,8 @@ let isSwiping   = false;
 let dragStartX = 0;
 let dragStartY = 0;
 let isDragging = false;
+let lastSwipedId = null;
+let undoTimer = null;
 
 async function _fetchName() {
   const res = await fetch('/api/next-name', { cache: 'no-store' });
@@ -121,11 +123,82 @@ async function swipe(liked, dragAnimated = false) {
     isSwiping = false;
   }
 
+  updateProgress(-1);
+
   if (prefetched && !prefetched.done && prefetched.id === nameId) prefetched = null;
   _prefetchNext();
 
-  if (matched) showMatchModal(matchedName);
-  else loadNextName();
+  if (matched) { hideUndo(); showMatchModal(matchedName); }
+  else { showUndo(nameId); loadNextName(); }
+}
+
+// ── Progress bar ──────────────────────────────────────────────────────────
+
+function updateProgress(delta) {
+  const container = document.getElementById('card-container');
+  if (!container) return;
+  const total = parseInt(container.dataset.total) || 0;
+  if (!total) return;
+  let remaining = Math.max(0, (parseInt(container.dataset.remaining) || 0) + delta);
+  container.dataset.remaining = remaining;
+  const seen = total - remaining;
+  const pct = Math.round(seen / total * 100);
+  const seenEl = document.getElementById('progress-seen');
+  const pctEl = document.getElementById('progress-pct');
+  const fillEl = document.getElementById('progress-fill');
+  if (seenEl) seenEl.textContent = seen;
+  if (pctEl) pctEl.textContent = pct + '%';
+  if (fillEl) fillEl.style.width = pct + '%';
+}
+
+// ── Undo last swipe ──────────────────────────────────────────────────────
+
+function showUndo(nameId) {
+  lastSwipedId = nameId;
+  const wrap = document.getElementById('undo-wrap');
+  if (!wrap) return;
+  wrap.style.display = '';
+  requestAnimationFrame(() => { wrap.style.opacity = '1'; });
+  clearTimeout(undoTimer);
+  undoTimer = setTimeout(() => {
+    wrap.style.opacity = '0';
+    setTimeout(() => { wrap.style.display = 'none'; }, 200);
+    lastSwipedId = null;
+  }, 5000);
+}
+
+function hideUndo() {
+  clearTimeout(undoTimer);
+  lastSwipedId = null;
+  const wrap = document.getElementById('undo-wrap');
+  if (wrap) { wrap.style.opacity = '0'; setTimeout(() => { wrap.style.display = 'none'; }, 200); }
+}
+
+async function undoSwipe() {
+  if (!lastSwipedId) return;
+  const nameId = lastSwipedId;
+  hideUndo();
+
+  try {
+    const res = await fetch('/api/undo-swipe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name_id: nameId }),
+    });
+    const data = await res.json();
+    if (data.success && data.name) {
+      prefetched = null;
+      currentName = data.name;
+      renderCard(data.name);
+      updateProgress(1);
+      const swipesEl = document.getElementById('stat-swipes');
+      if (swipesEl) swipesEl.textContent = String(Math.max(0, (parseInt(swipesEl.textContent) || 0) - 1));
+      if (data.was_match) {
+        const matchesEl = document.getElementById('stat-matches');
+        if (matchesEl) matchesEl.textContent = String(Math.max(0, (parseInt(matchesEl.textContent) || 0) - 1));
+      }
+    }
+  } catch (_) {}
 }
 
 // ── Drag swipe via Pointer Events ──────────────────────────────────────────
@@ -262,6 +335,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   document.getElementById('match-modal-close')?.addEventListener('click', closeMatchModal);
   document.getElementById('match-modal-keep-swiping')?.addEventListener('click', closeMatchModal);
+  document.getElementById('undo-btn')?.addEventListener('click', undoSwipe);
 
   // Pointer events: unified touch + mouse; setPointerCapture routes moves to the card
   const card = document.getElementById('name-card');

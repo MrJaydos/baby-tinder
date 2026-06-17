@@ -75,8 +75,24 @@ def tinder():
     match_count = 0
     if current_user.couple_id:
         match_count = Match.query.filter_by(couple_id=current_user.couple_id).count()
+
+    gender = current_user.pref_gender or 'all'
+    origin = current_user.pref_origin or 'all'
+    style = current_user.pref_style or 'all'
+    base = BabyName.query
+    if gender != 'all':
+        base = base.filter(BabyName.gender == gender.upper())
+    if origin and origin != 'all':
+        base = base.filter(BabyName.origin == origin)
+    if style and style != 'all':
+        base = base.filter(BabyName.style == style)
+    total_names = base.count()
+    swiped_ids = db.session.query(Swipe.name_id).filter_by(user_id=current_user.id).subquery()
+    remaining_names = base.filter(BabyName.id.notin_(swiped_ids)).count()
+
     return render_template('tinder.html', user=current_user,
-                           swipe_count=swipe_count, match_count=match_count)
+                           swipe_count=swipe_count, match_count=match_count,
+                           total_names=total_names, remaining_names=remaining_names)
 
 
 @views.route('/api/next-name')
@@ -199,6 +215,46 @@ def swipe():
                 matched_name = baby.name if baby else ''
 
     return jsonify({'success': True, 'matched': matched, 'matched_name': matched_name})
+
+
+@views.route('/api/undo-swipe', methods=['POST'])
+@login_required
+def undo_swipe():
+    data = request.get_json(silent=True) or {}
+    name_id = data.get('name_id')
+    if not name_id:
+        return jsonify({'error': 'Missing name_id'}), 400
+
+    swipe_rec = Swipe.query.filter_by(user_id=current_user.id, name_id=name_id).first()
+    if not swipe_rec:
+        return jsonify({'error': 'Swipe not found'}), 404
+
+    was_match = False
+    db.session.delete(swipe_rec)
+    if current_user.couple_id:
+        match = Match.query.filter_by(couple_id=current_user.couple_id, name_id=name_id).first()
+        if match:
+            db.session.delete(match)
+            was_match = True
+    db.session.commit()
+
+    name = BabyName.query.get(name_id)
+    if not name:
+        return jsonify({'success': True, 'was_match': was_match})
+
+    return jsonify({
+        'success': True,
+        'was_match': was_match,
+        'name': {
+            'id': name.id,
+            'name': name.name,
+            'gender': name.gender,
+            'origin': name.origin or '',
+            'meaning': name.meaning or '',
+            'style': name.style or '',
+            'partner_liked': False,
+        }
+    })
 
 
 @views.route('/matches')
