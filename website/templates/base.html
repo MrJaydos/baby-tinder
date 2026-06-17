@@ -42,23 +42,29 @@
       }
 
       /* ── Navbar ── */
-      .navbar {
-        background: var(--plum) !important;
-        padding: 0.55rem 1rem;
+      .site-nav {
+        background: var(--plum);
         box-shadow: 0 2px 16px rgba(45,19,71,0.3);
-        position: relative; /* anchor for absolute brand */
-        flex-wrap: wrap;    /* lets the collapse row stack below */
       }
+      .navbar-top {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        align-items: center;
+        width: 100%;
+        height: 52px;
+        padding: 0 0.6rem;
+        flex-shrink: 0;
+      }
+      .navbar-top-l { display: flex; align-items: center; justify-content: flex-start; }
+      .navbar-top-r { display: flex; align-items: center; justify-content: flex-end; }
       .navbar-brand {
         font-size: 1.35rem;
         font-weight: 900;
         color: #fff !important;
         letter-spacing: -0.3px;
-        position: absolute;
-        left: 50%;
-        transform: translateX(-50%);
         white-space: nowrap;
-        pointer-events: auto;
+        padding: 0;
+        margin: 0;
       }
       .navbar-brand span { color: var(--pink-mid); }
       .navbar-toggler {
@@ -95,9 +101,7 @@
       }
       .navbar-collapse-inner {
         border-top: 1px solid rgba(255,255,255,0.1);
-        margin-top: 0.4rem;
-        padding-top: 0.4rem;
-        padding-bottom: 0.3rem;
+        padding: 0.4rem 0.15rem 0.5rem;
       }
       /* Account dropdown styling */
       .account-dropdown-menu {
@@ -529,44 +533,50 @@
     </style>
   </head>
   <body>
-    <nav class="navbar">
-      <!-- Left: hamburger -->
-      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbar" aria-label="Menu">
-        <i class="fa fa-bars"></i>
-      </button>
+    <nav class="site-nav">
+      <div class="navbar-top">
+        <!-- Left: hamburger -->
+        <div class="navbar-top-l">
+          <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbar" aria-label="Menu">
+            <i class="fa fa-bars"></i>
+          </button>
+        </div>
 
-      <!-- Centre: brand (absolutely centred) -->
-      <a class="navbar-brand" href="/">&#128149; Baby <span>Tinder</span></a>
+        <!-- Centre: brand (grid-centred) -->
+        <a class="navbar-brand" href="/">&#128149; Baby <span>Tinder</span></a>
 
-      <!-- Right: account icon or login link -->
-      {% if user.is_authenticated %}
-      <div class="dropdown ml-auto">
-        <button class="account-icon-btn btn" data-toggle="dropdown" aria-label="Account">
-          <i class="fa fa-user-circle"></i>
-        </button>
-        <div class="dropdown-menu dropdown-menu-right account-dropdown-menu">
-          <div class="account-dropdown-header">Hi, {{ user.first_name }} &#128075;</div>
-          <a class="dropdown-item" href="/account">
-            <i class="fa fa-sliders fa-fw mr-2" style="color:var(--pink);"></i>Preferences
-          </a>
-          <a class="dropdown-item" href="/liked">
-            <i class="fa fa-heart-o fa-fw mr-2" style="color:var(--pink);"></i>Liked Names
-          </a>
-          <a class="dropdown-item" href="/matches">
-            <i class="fa fa-heart fa-fw mr-2" style="color:var(--pink);"></i>Matches
-          </a>
-          <div class="dropdown-divider" style="margin:0.25rem 0;"></div>
-          <a class="dropdown-item" href="/logout" style="color:var(--muted);">
-            <i class="fa fa-sign-out fa-fw mr-2"></i>Logout
-          </a>
+        <!-- Right: account icon or login link -->
+        <div class="navbar-top-r">
+          {% if user.is_authenticated %}
+          <div class="dropdown">
+            <button class="account-icon-btn btn" data-toggle="dropdown" aria-label="Account">
+              <i class="fa fa-user-circle"></i>
+            </button>
+            <div class="dropdown-menu dropdown-menu-right account-dropdown-menu">
+              <div class="account-dropdown-header">Hi, {{ user.first_name }} &#128075;</div>
+              <a class="dropdown-item" href="/account">
+                <i class="fa fa-sliders fa-fw mr-2" style="color:var(--pink);"></i>Preferences
+              </a>
+              <a class="dropdown-item" href="/liked">
+                <i class="fa fa-heart-o fa-fw mr-2" style="color:var(--pink);"></i>Liked Names
+              </a>
+              <a class="dropdown-item" href="/matches">
+                <i class="fa fa-heart fa-fw mr-2" style="color:var(--pink);"></i>Matches
+              </a>
+              <div class="dropdown-divider" style="margin:0.25rem 0;"></div>
+              <a class="dropdown-item" href="/logout" style="color:var(--muted);">
+                <i class="fa fa-sign-out fa-fw mr-2"></i>Logout
+              </a>
+            </div>
+          </div>
+          {% else %}
+          <a href="/login" style="color:rgba(255,255,255,0.85);font-weight:700;font-size:0.9rem;">Login</a>
+          {% endif %}
         </div>
       </div>
-      {% else %}
-      <a href="/login" class="ml-auto" style="color:rgba(255,255,255,0.85);font-weight:700;font-size:0.9rem;">Login</a>
-      {% endif %}
 
       <!-- Collapsible full-width nav links -->
-      <div class="collapse navbar-collapse w-100" id="navbar">
+      <div class="collapse w-100" id="navbar">
         <div class="navbar-nav navbar-collapse-inner">
           {% if user.is_authenticated %}
             <a class="nav-item nav-link" href="/">Home</a>

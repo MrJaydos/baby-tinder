@@ -53,7 +53,7 @@ _ORIGIN_LOOKUP = {
     'urdu':               'Indian',
     'sikh':               'Indian',
     # Scandinavian already above (Swedish, Norwegian, Danish, Icelandic → Scandinavian)
-    # Sub-Saharan African → African
+    # Sub-Saharan / regional African → African
     'nigerian':           'African',
     'yoruba':             'African',
     'swahili':            'African',
@@ -63,9 +63,12 @@ _ORIGIN_LOOKUP = {
     'ghanaian':           'African',
     'west african':       'African',
     'east african':       'African',
+    'south african':      'African',
+    'north african':      'African',
+    'central african':    'African',
     'kenyan':             'African',
-    # African-American normalisation
-    'african-american':   'African American',
+    'african-american':   'African',
+    'african american':   'African',
     # Slavic languages → Slavic
     'russian':            'Slavic',
     'polish':             'Slavic',
@@ -89,8 +92,13 @@ _ORIGIN_LOOKUP = {
     'galician':           'Spanish',
     'mexican':            'Spanish',
     'catalan':            'Spanish',
-    'aztec':              'Native American',
-    'mayan':              'Native American',
+    'aztec':              'American',
+    'mayan':              'American',
+    'native american':    'American',
+    'latin american':     'American',
+    'south american':     'American',
+    'central american':   'American',
+    'north american':     'American',
     'new zealand maori':  'Maori',
     'aboriginal':         'Australian',
     # Discard entries that are not real cultural origins
@@ -150,6 +158,12 @@ def _normalize_origin(raw):
     if ' - ' in s:
         head = s.split(' - ')[0].strip()
         return _ORIGIN_LOOKUP.get(head.lower(), head)
+
+    # Catch-all: any remaining "X American" / "X African" variant → canonical
+    if 'american' in low:
+        return 'American'
+    if 'african' in low:
+        return 'African'
 
     # Too long → almost certainly garbled data, discard
     if len(s) > 35:
